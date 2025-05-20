@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System.Windows;
+using System.Windows.Input;
 
 namespace SQLManager;
 
@@ -23,5 +24,10 @@ public partial class MainWindow
         {
             _ = _Model.ExecuteSql();
         }
+    }
+
+    private void Database_Expanded(object sender, RoutedEventArgs e)
+    {
+
     }
 }

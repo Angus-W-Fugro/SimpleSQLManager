@@ -10,8 +10,8 @@ namespace SQLManager;
 
 public class MainWindowModel : Model
 {
-    private string? _ServerName;
-    private ObservableCollection<string> _DatabaseNames = [];
+    private string? _ServerName = "localhost\\sqlexpress";
+    private ObservableCollection<Database> _Databases = [];
     private string? _SQLText;
     private string? _SelectedDatabaseName;
     private string? _SQLResponse;
@@ -26,12 +26,12 @@ public class MainWindowModel : Model
         }
     }
 
-    public ObservableCollection<string> DatabaseNames
+    public ObservableCollection<Database> Databases
     {
-        get => _DatabaseNames;
+        get => _Databases;
         set
         {
-            _DatabaseNames = value;
+            _Databases = value;
             NotifyPropertyChanged();
         }
     }
@@ -56,7 +56,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        DatabaseNames = new ObservableCollection<string>(databaseNames);
+        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name)));
     }
 
     private static string CreateConnectionString(string serverName)
@@ -103,7 +103,7 @@ public class MainWindowModel : Model
 
     public async Task ExecuteSql()
     {
-        if (DatabaseNames.Count == 0)
+        if (Databases.Count == 0)
         {
             MessageBox.Show("Please connect to a server first.");
             return;
@@ -192,5 +192,59 @@ public class MainWindowModel : Model
         }
 
         return output.ToString();
+    }
+}
+
+public class Database(string name) : Model
+{
+    private ObservableCollection<DatabaseTable> _Tables = [ new DatabaseTable("Table1"), new DatabaseTable("Table2"), new DatabaseTable("Table3") ];
+
+    public string DatabaseName { get; } = name;
+
+    public ObservableCollection<DatabaseTable> Tables
+    {
+        get => _Tables;
+        set
+        {
+            _Tables = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    public override string ToString()
+    {
+        return DatabaseName;
+    }
+}
+
+public class DatabaseTable(string name) : Model
+{
+    private ObservableCollection<DatabaseColumn> _Columns = [new DatabaseColumn("Col1"), new DatabaseColumn("Col2"), new DatabaseColumn("Col3")];
+
+    public string TableName { get; } = name;
+
+    public ObservableCollection<DatabaseColumn> Columns
+    {
+        get => _Columns;
+        set
+        {
+            _Columns = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    public override string ToString()
+    {
+        return TableName;
+    }
+}
+
+public class DatabaseColumn(string name) : Model
+{
+    public string ColumnName { get; } = name;
+
+    public override string ToString()
+    {
+        return ColumnName;
     }
 }
