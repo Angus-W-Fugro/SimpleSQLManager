@@ -55,7 +55,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="Query:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding SQLText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding SQLText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,8,0" PreviewKeyDown="SQLTextBox_PreviewKeyDown" />
                 <Button Grid.Column="2" Content="Execute" Command="{Binding ExecuteSqlCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
             </Grid>
             

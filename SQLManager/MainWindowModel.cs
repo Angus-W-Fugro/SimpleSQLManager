@@ -101,7 +101,7 @@ public class MainWindowModel : Model
 
     public ICommand ExecuteSqlCommand => new Command(async () => await ExecuteSql());
 
-    private async Task ExecuteSql()
+    public async Task ExecuteSql()
     {
         if (DatabaseNames.Count == 0)
         {
