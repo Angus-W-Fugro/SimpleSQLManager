@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -71,7 +72,29 @@ public class MainWindowModel : Model
             return;
         }
 
-        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name)));
+        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, LoadTable)));
+    }
+
+    private async void LoadTable(DatabaseTable table)
+    {
+        if (table.Columns is not null)
+        {
+            return;
+        }
+
+        var connectionString = CreateConnectionString(ServerName!, table.DatabaseName);
+
+        var columnNames = await GetColumnNames(connectionString, table.TableName);
+
+        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name)));
+
+        table.Columns = columns;
+    }
+
+    private async Task<string[]> GetColumnNames(string connectionString, string tableName)
+    {
+        var query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}'";
+        return await QueryList(connectionString, query);
     }
 
     private static string CreateConnectionString(string serverName)
@@ -108,7 +131,7 @@ public class MainWindowModel : Model
 
         var tableNames = await GetTableNames(database.DatabaseName);
 
-        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name)));
+        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database.DatabaseName)));
 
         database.Tables = tables;
     }
@@ -226,9 +249,11 @@ public class MainWindowModel : Model
     }
 }
 
-public class Database(string name) : Model
+public class Database(string name, Action<DatabaseTable> loadTable) : Model
 {
     private ObservableCollection<DatabaseTable>? _Tables;
+    private DatabaseTable? _SelectedTable;
+    private readonly Action<DatabaseTable> _LoadTable = loadTable;
 
     public string DatabaseName { get; } = name;
 
@@ -242,19 +267,36 @@ public class Database(string name) : Model
         }
     }
 
+    public DatabaseTable? SelectedTable
+    {
+        get => _SelectedTable;
+        set
+        {
+            _SelectedTable = value;
+            NotifyPropertyChanged();
+
+            if (_SelectedTable is not null)
+            {
+                _LoadTable(_SelectedTable);
+            }
+        }
+    }
+
     public override string ToString()
     {
         return DatabaseName;
     }
 }
 
-public class DatabaseTable(string name) : Model
+public class DatabaseTable(string tableName, string databaseName) : Model
 {
-    private ObservableCollection<DatabaseColumn> _Columns = [new DatabaseColumn("Col1"), new DatabaseColumn("Col2"), new DatabaseColumn("Col3")];
+    private ObservableCollection<DatabaseColumn>? _Columns;
 
-    public string TableName { get; } = name;
+    public string TableName { get; } = tableName;
 
-    public ObservableCollection<DatabaseColumn> Columns
+    public string DatabaseName { get; } = databaseName;
+
+    public ObservableCollection<DatabaseColumn>? Columns
     {
         get => _Columns;
         set

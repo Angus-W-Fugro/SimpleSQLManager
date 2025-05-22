@@ -36,10 +36,26 @@
                 <Button Grid.Column="2" Content="Connect" Command="{Binding ConnectCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
             </Grid>
 
-            <ListView Grid.Row="1" ItemsSource="{Binding Databases}" SelectedValue="{Binding SelectedDatabase}">
+            <ListView Grid.Row="1" ItemsSource="{Binding Databases}" SelectedItem="{Binding SelectedDatabase}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <TreeViewItem Header="{Binding DatabaseName}" ItemsSource="{Binding Tables}" />
+                        <Expander Header="{Binding DatabaseName}">
+                            <ListView ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Expander Header="{Binding TableName}">
+                                            <ListView ItemsSource="{Binding Columns}">
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding ColumnName}" />
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </Expander>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Expander>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
