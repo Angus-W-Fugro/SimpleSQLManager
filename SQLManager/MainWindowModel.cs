@@ -13,8 +13,8 @@ public class MainWindowModel : Model
     private string? _ServerName = "localhost\\sqlexpress";
     private ObservableCollection<Database> _Databases = [];
     private string? _SQLText;
-    private string? _SelectedDatabaseName;
     private string? _SQLResponse;
+    private Database? _SelectedDatabase;
 
     public string? ServerName
     {
@@ -33,6 +33,21 @@ public class MainWindowModel : Model
         {
             _Databases = value;
             NotifyPropertyChanged();
+        }
+    }
+
+    public Database? SelectedDatabase
+    {
+        get => _SelectedDatabase;
+        set
+        {
+            _SelectedDatabase = value;
+            NotifyPropertyChanged();
+
+            if (_SelectedDatabase is not null)
+            {
+                _ = LoadDatabase(_SelectedDatabase);
+            }
         }
     }
 
@@ -71,22 +86,38 @@ public class MainWindowModel : Model
 
     private async Task<string[]> GetDatabaseNames(string connectionString)
     {
+        var query = "SELECT name FROM sys.databases";
+        return await QueryList(connectionString, query);
+    }
+
+    private async Task<string[]> QueryList(string connectionString, string query)
+    {
         using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync();
 
-        var query = "SELECT name FROM sys.databases";
-        var databaseNames = await connection.QueryAsync<string>(query);
-        return databaseNames.ToArray();
+        var result = await connection.QueryAsync<string>(query);
+        return result.OrderBy(x => x).ToArray();
     }
 
-    public string? SelectedDatabaseName
+    private async Task LoadDatabase(Database database)
     {
-        get => _SelectedDatabaseName;
-        set
+        if (database.Tables is not null)
         {
-            _SelectedDatabaseName = value;
-            NotifyPropertyChanged();
+            return;
         }
+
+        var tableNames = await GetTableNames(database.DatabaseName);
+
+        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name)));
+
+        database.Tables = tables;
+    }
+
+    private async Task<string[]> GetTableNames(string databaseName)
+    {
+        var connectionString = CreateConnectionString(ServerName!, databaseName);
+        var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
+        return await QueryList(connectionString, query);
     }
 
     public string? SQLText
@@ -121,13 +152,13 @@ public class MainWindowModel : Model
             return;
         }
 
-        if (string.IsNullOrEmpty(SelectedDatabaseName))
+        if (SelectedDatabase is null)
         {
             MessageBox.Show("Please select a database.");
             return;
         }
 
-        var connectionString = CreateConnectionString(ServerName, SelectedDatabaseName);
+        var connectionString = CreateConnectionString(ServerName, SelectedDatabase.DatabaseName);
 
         using var connection = new SqlConnection(connectionString);
 
@@ -197,11 +228,11 @@ public class MainWindowModel : Model
 
 public class Database(string name) : Model
 {
-    private ObservableCollection<DatabaseTable> _Tables = [ new DatabaseTable("Table1"), new DatabaseTable("Table2"), new DatabaseTable("Table3") ];
+    private ObservableCollection<DatabaseTable>? _Tables;
 
     public string DatabaseName { get; } = name;
 
-    public ObservableCollection<DatabaseTable> Tables
+    public ObservableCollection<DatabaseTable>? Tables
     {
         get => _Tables;
         set
