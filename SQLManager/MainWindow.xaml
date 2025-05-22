@@ -20,24 +20,16 @@
 
         <Grid Grid.Column="0" Margin="12">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                
-                <TextBlock Grid.Column="0" Text="Server Name:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding ServerName}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <Button Grid.Column="2" Content="Connect" Command="{Binding ConnectCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            </Grid>
-
-            <TreeView Grid.Row="1" ItemsSource="{Binding Databases}" SelectedItemChanged="TreeView_SelectedItemChanged">
+            <TreeView Grid.Row="0" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
                 <TreeView.Resources>
+                    <HierarchicalDataTemplate DataType="{x:Type local:SqlServer}" ItemsSource="{Binding Databases}">
+                        <TextBlock Text="{Binding ServerName}" />
+                    </HierarchicalDataTemplate>
+
                     <HierarchicalDataTemplate DataType="{x:Type local:Database}" ItemsSource="{Binding Tables}">
                         <TextBlock Text="{Binding DatabaseName}" />
                     </HierarchicalDataTemplate>
@@ -51,6 +43,18 @@
                     </HierarchicalDataTemplate>
                 </TreeView.Resources>
             </TreeView>
+
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Server Name:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBox Grid.Column="1" Text="{Binding NewServerName}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <Button Grid.Column="2" Content="Add" Command="{Binding AddServerCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            </Grid>
         </Grid>
 
         <GridSplitter Grid.Column="1" Width="2" ResizeBehavior="PreviousAndNext" />
@@ -58,10 +62,26 @@
         <Grid Grid.Column="2" Margin="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding SelectedServer.ServerName}" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="1" Text="{Binding SelectedDatabase.DatabaseName}" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="2" Text="{Binding SelectedTable.TableName}" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="3" Text="{Binding SelectedColumn.ColumnName}" Margin="0,0,8,0" />
+            </Grid>
+            
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -72,8 +92,8 @@
                 <TextBox Grid.Column="1" Text="{Binding SQLText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,8,0" PreviewKeyDown="SQLTextBox_PreviewKeyDown" />
                 <Button Grid.Column="2" Content="Execute" Command="{Binding ExecuteSqlCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
             </Grid>
-            
-            <TextBlock Grid.Row="1" Text="{Binding SQLResponse}" />
+
+            <DataGrid Grid.Row="2" AutoGenerateColumns="True" IsReadOnly="True" ItemsSource="{Binding SQLResponse}" />
         </Grid>
     </Grid>
 </Window>

@@ -1,8 +1,8 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -11,29 +11,35 @@ namespace SQLManager;
 
 public class MainWindowModel : Model
 {
-    private string? _ServerName = "localhost\\sqlexpress";
-    private ObservableCollection<Database> _Databases = [];
-    private string? _SQLText;
-    private string? _SQLResponse;
+    private ObservableCollection<SqlServer> _Servers = [ new SqlServer("localhost\\sqlexpress") ];
+    private SqlServer? _SelectedServer;
     private Database? _SelectedDatabase;
+    private DatabaseTable? _SelectedTable;
+    private DatabaseColumn? _SelectedColumn;
 
-    public string? ServerName
+    private string? _SQLText;
+    private DataTable? _SQLResponse;
+    private string? _NewServerName;
+
+    public ObservableCollection<SqlServer> Servers
     {
-        get => _ServerName;
+        get => _Servers;
         set
         {
-            _ServerName = value;
+            _Servers = value;
             NotifyPropertyChanged();
         }
     }
 
-    public ObservableCollection<Database> Databases
+    public SqlServer? SelectedServer
     {
-        get => _Databases;
+        get => _SelectedServer;
         set
         {
-            _Databases = value;
+            _SelectedServer = value;
             NotifyPropertyChanged();
+
+            SelectedDatabase = null;
         }
     }
 
@@ -45,34 +51,73 @@ public class MainWindowModel : Model
             _SelectedDatabase = value;
             NotifyPropertyChanged();
 
-            if (_SelectedDatabase is not null)
-            {
-                _ = LoadDatabase(_SelectedDatabase);
-            }
+            SelectedTable = null;
         }
     }
 
-    public ICommand ConnectCommand => new Command(async () => await Connect());
-
-    private async Task Connect()
+    public DatabaseTable? SelectedTable
     {
-        if (string.IsNullOrEmpty(ServerName))
+        get => _SelectedTable;
+        set
+        {
+            _SelectedTable = value;
+            NotifyPropertyChanged();
+
+            SelectedColumn = null;
+        }
+    }
+
+    public DatabaseColumn? SelectedColumn
+    {
+        get => _SelectedColumn;
+        set
+        {
+            _SelectedColumn = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    public string? NewServerName
+    {
+        get => _NewServerName;
+        set
+        {
+            _NewServerName = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    public ICommand AddServerCommand => new Command(AddServer);
+
+    private void AddServer()
+    {
+        if (string.IsNullOrEmpty(NewServerName))
         {
             MessageBox.Show("Please enter a server name.");
             return;
         }
 
-        var connectionString = CreateConnectionString(ServerName);
+        var currentServers = Servers.ToList();
+        var newServer = new SqlServer(NewServerName);
+        currentServers.Add(newServer);
 
-        var databaseNames = await GetDatabaseNames(connectionString);
+        Servers = new ObservableCollection<SqlServer>(currentServers);
+    }
 
-        if (databaseNames.Length == 0)
+    public async Task LoadServer(SqlServer server)
+    {
+        if (server.Databases is not null)
         {
-            MessageBox.Show("No databases found.");
             return;
         }
 
-        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name)));
+        var connectionString = CreateConnectionString(server.ServerName);
+
+        var databaseNames = await GetDatabaseNames(connectionString);
+
+        var databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, server)));
+
+        server.Databases = databases;
     }
 
     public async Task LoadTable(DatabaseTable table)
@@ -82,11 +127,11 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(ServerName!, table.DatabaseName);
+        var connectionString = CreateConnectionString(table.Database);
 
         var columnNames = await GetColumnNames(connectionString, table.TableName);
 
-        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name)));
+        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name, table)));
 
         table.Columns = columns;
     }
@@ -95,6 +140,16 @@ public class MainWindowModel : Model
     {
         var query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}'";
         return await QueryList(connectionString, query);
+    }
+
+    private static string CreateConnectionString(SqlServer server)
+    {
+        return CreateConnectionString(server.ServerName);
+    }
+
+    private static string CreateConnectionString(Database database)
+    {
+        return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
     }
 
     private static string CreateConnectionString(string serverName)
@@ -122,25 +177,51 @@ public class MainWindowModel : Model
         return result.OrderBy(x => x).ToArray();
     }
 
-    private async Task LoadDatabase(Database database)
+    public async Task LoadSelected(object selectedItem)
+    {
+        try
+        {
+            if (selectedItem is SqlServer server)
+            {
+                await LoadServer(server);
+                SelectedServer = server;
+                return;
+            }
+
+            if (selectedItem is Database database)
+            {
+                await LoadDatabase(database);
+                SelectedDatabase = database;
+                return;
+            }
+
+            if (selectedItem is DatabaseTable table)
+            {
+                await LoadTable(table);
+                SelectedTable = table;
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error loading selected item: {ex.Message}");
+        }
+    }
+
+    public async Task LoadDatabase(Database database)
     {
         if (database.Tables is not null)
         {
             return;
         }
 
-        var tableNames = await GetTableNames(database.DatabaseName);
+        var connectionString = CreateConnectionString(database.Server.ServerName, database.DatabaseName);
+        var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
+        var tableNames = await QueryList(connectionString, query);
 
-        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database.DatabaseName)));
+        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database)));
 
         database.Tables = tables;
-    }
-
-    private async Task<string[]> GetTableNames(string databaseName)
-    {
-        var connectionString = CreateConnectionString(ServerName!, databaseName);
-        var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
-        return await QueryList(connectionString, query);
     }
 
     public string? SQLText
@@ -157,7 +238,7 @@ public class MainWindowModel : Model
 
     public async Task ExecuteSql()
     {
-        if (Databases.Count == 0)
+        if (Servers.Count == 0)
         {
             MessageBox.Show("Please connect to a server first.");
             return;
@@ -169,19 +250,13 @@ public class MainWindowModel : Model
             return;
         }
 
-        if (string.IsNullOrEmpty(ServerName))
-        {
-            MessageBox.Show("Please enter a server name.");
-            return;
-        }
-
         if (SelectedDatabase is null)
         {
             MessageBox.Show("Please select a database.");
             return;
         }
 
-        var connectionString = CreateConnectionString(ServerName, SelectedDatabase.DatabaseName);
+        var connectionString = CreateConnectionString(SelectedDatabase);
 
         using var connection = new SqlConnection(connectionString);
 
@@ -189,8 +264,9 @@ public class MainWindowModel : Model
         {
             await connection.OpenAsync();
             var reader = await connection.ExecuteReaderAsync(SQLText);
-            var response = GetSQLReaderOutput(reader);
-            SQLResponse = response;
+            var dataTable = new DataTable();
+            dataTable.Load(reader);
+            SQLResponse = dataTable;
         }
         catch (Exception ex)
         {
@@ -198,7 +274,7 @@ public class MainWindowModel : Model
         }
     }
 
-    public string? SQLResponse
+    public DataTable? SQLResponse
     {
         get => _SQLResponse;
         set
@@ -249,12 +325,35 @@ public class MainWindowModel : Model
     }
 }
 
-public class Database(string name) : Model
+public class SqlServer(string name) : Model
+{
+    private ObservableCollection<Database>? _Databases;
+
+    public string ServerName { get; } = name;
+
+    public ObservableCollection<Database>? Databases
+    {
+        get => _Databases;
+        set
+        {
+            _Databases = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    public override string ToString()
+    {
+        return ServerName;
+    }
+}
+
+public class Database(string name, SqlServer server) : Model
 {
     private ObservableCollection<DatabaseTable>? _Tables;
-    private DatabaseTable? _SelectedTable;
 
     public string DatabaseName { get; } = name;
+
+    public SqlServer Server { get; } = server;
 
     public ObservableCollection<DatabaseTable>? Tables
     {
@@ -266,29 +365,19 @@ public class Database(string name) : Model
         }
     }
 
-    public DatabaseTable? SelectedTable
-    {
-        get => _SelectedTable;
-        set
-        {
-            _SelectedTable = value;
-            NotifyPropertyChanged();
-        }
-    }
-
     public override string ToString()
     {
         return DatabaseName;
     }
 }
 
-public class DatabaseTable(string tableName, string databaseName) : Model
+public class DatabaseTable(string tableName, Database database) : Model
 {
     private ObservableCollection<DatabaseColumn>? _Columns;
 
     public string TableName { get; } = tableName;
 
-    public string DatabaseName { get; } = databaseName;
+    public Database Database { get; } = database;
 
     public ObservableCollection<DatabaseColumn>? Columns
     {
@@ -306,9 +395,11 @@ public class DatabaseTable(string tableName, string databaseName) : Model
     }
 }
 
-public class DatabaseColumn(string name) : Model
+public class DatabaseColumn(string name, DatabaseTable table) : Model
 {
     public string ColumnName { get; } = name;
+
+    public DatabaseTable Table { get; } = table;
 
     public override string ToString()
     {
