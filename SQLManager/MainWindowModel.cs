@@ -72,10 +72,10 @@ public class MainWindowModel : Model
             return;
         }
 
-        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, LoadTable)));
+        Databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name)));
     }
 
-    private async void LoadTable(DatabaseTable table)
+    public async Task LoadTable(DatabaseTable table)
     {
         if (table.Columns is not null)
         {
@@ -249,11 +249,10 @@ public class MainWindowModel : Model
     }
 }
 
-public class Database(string name, Action<DatabaseTable> loadTable) : Model
+public class Database(string name) : Model
 {
     private ObservableCollection<DatabaseTable>? _Tables;
     private DatabaseTable? _SelectedTable;
-    private readonly Action<DatabaseTable> _LoadTable = loadTable;
 
     public string DatabaseName { get; } = name;
 
@@ -274,11 +273,6 @@ public class Database(string name, Action<DatabaseTable> loadTable) : Model
         {
             _SelectedTable = value;
             NotifyPropertyChanged();
-
-            if (_SelectedTable is not null)
-            {
-                _LoadTable(_SelectedTable);
-            }
         }
     }
 

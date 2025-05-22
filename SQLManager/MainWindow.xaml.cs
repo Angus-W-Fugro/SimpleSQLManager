@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Input;
 
 namespace SQLManager;
@@ -26,8 +27,18 @@ public partial class MainWindow
         }
     }
 
-    private void Database_Expanded(object sender, RoutedEventArgs e)
+    private async void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
+        if (e.NewValue is Database database)
+        {
+            _Model.SelectedDatabase = database;
+            return;
+        }
 
+        if (e.NewValue is DatabaseTable databaseTable)
+        {
+            await _Model.LoadTable(databaseTable);
+            return;
+        }
     }
 }
