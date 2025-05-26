@@ -393,7 +393,7 @@ public class MainWindowModel : Model
 
                     if (row[column] is not DBNull)
                     {
-                        setClauses.Add($"{column.ColumnName} = @{column.ColumnName}");
+                        setClauses.Add($"[{column.ColumnName}] = @{column.ColumnName}");
                         parameters.Add(new SqlParameter($"@{column.ColumnName}", row[column]));
                     }
                 }
@@ -401,7 +401,7 @@ public class MainWindowModel : Model
                 updateQuery.Append(string.Join(", ", setClauses));
                 updateQuery.Append(" WHERE ");
 
-                updateQuery.Append($"{primaryKeyColumn.ColumnName} = @{primaryKeyColumn.ColumnName}");
+                updateQuery.Append($"[{primaryKeyColumn.ColumnName}] = @{primaryKeyColumn.ColumnName}");
                 parameters.Add(new SqlParameter($"@{primaryKeyColumn.ColumnName}", row[primaryKeyColumn]));
 
                 command.CommandText = updateQuery.ToString();
