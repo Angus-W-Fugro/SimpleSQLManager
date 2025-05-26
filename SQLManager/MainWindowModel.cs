@@ -20,6 +20,7 @@ public class MainWindowModel : Model
     private string? _SQLText;
     private DataTable? _SQLResponse;
     private string? _NewServerName;
+    private bool _ReadOnly = true;
 
     public ObservableCollection<SqlServer> Servers
     {
@@ -322,6 +323,101 @@ public class MainWindowModel : Model
         }
 
         return output.ToString();
+    }
+
+    public ICommand EditTableCommand => new Command(EditTable);
+
+    public bool ReadOnly
+    {
+        get => _ReadOnly;
+        set
+        {
+            _ReadOnly = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    private void EditTable()
+    {
+        ReadOnly = false;
+    }
+
+    public ICommand SaveTableCommand => new Command(async () => await SaveTable());
+
+    private async Task SaveTable()
+    {
+        if (SQLResponse is null || SelectedDatabase is null || SelectedTable is null)
+        {
+            return;
+        }
+
+        ReadOnly = true;
+
+        var changedRows = SQLResponse.Rows.OfType<DataRow>().Where(dr => dr.RowState == DataRowState.Modified);
+
+        if (!changedRows.Any())
+        {
+            MessageBox.Show("No changes to save.");
+            return;
+        }
+
+        var connectionString = CreateConnectionString(SelectedDatabase);
+
+        using var connection = new SqlConnection(connectionString);
+
+        connection.Open();
+
+        using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            foreach (var row in changedRows)
+            {
+                var command = connection.CreateCommand();
+                command.Transaction = transaction;
+
+                var updateQuery = new StringBuilder($"UPDATE {SelectedTable.TableName} SET ");
+
+                var setClauses = new List<string>();
+                var parameters = new List<SqlParameter>();
+
+                // Assuming the first column is the primary key
+                var primaryKeyColumn = SQLResponse.Columns[0];
+
+                foreach (DataColumn column in SQLResponse.Columns)
+                {
+                    if (column == primaryKeyColumn)
+                    {
+                        continue;
+                    }
+
+                    if (row[column] is not DBNull)
+                    {
+                        setClauses.Add($"{column.ColumnName} = @{column.ColumnName}");
+                        parameters.Add(new SqlParameter($"@{column.ColumnName}", row[column]));
+                    }
+                }
+
+                updateQuery.Append(string.Join(", ", setClauses));
+                updateQuery.Append(" WHERE ");
+
+                updateQuery.Append($"{primaryKeyColumn.ColumnName} = @{primaryKeyColumn.ColumnName}");
+                parameters.Add(new SqlParameter($"@{primaryKeyColumn.ColumnName}", row[primaryKeyColumn]));
+
+                command.CommandText = updateQuery.ToString();
+                command.Parameters.AddRange(parameters.ToArray());
+
+                await command.ExecuteNonQueryAsync();
+            }
+
+            transaction.Commit();
+            MessageBox.Show("Changes saved successfully.");
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            MessageBox.Show($"Error saving changes: {ex.Message}");
+        }
     }
 }
 

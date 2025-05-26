@@ -93,7 +93,17 @@
                 <Button Grid.Column="2" Content="Execute" Command="{Binding ExecuteSqlCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
             </Grid>
 
-            <DataGrid Grid.Row="2" AutoGenerateColumns="True" IsReadOnly="True" ItemsSource="{Binding SQLResponse}" />
+            <DataGrid Grid.Row="2" AutoGenerateColumns="True" IsReadOnly="{Binding ReadOnly}" ItemsSource="{Binding SQLResponse}" />
+
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="Edit" Command="{Binding EditTableCommand}" Margin="0,0,8,0" />
+                <Button Grid.Column="1" Content="Save changes" Command="{Binding SaveTableCommand}" Margin="0,0,8,0" />
+            </Grid>
         </Grid>
     </Grid>
 </Window>
