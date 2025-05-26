@@ -381,8 +381,7 @@ public class MainWindowModel : Model
                 var setClauses = new List<string>();
                 var parameters = new List<SqlParameter>();
 
-                // Assuming the first column is the primary key
-                var primaryKeyColumn = SQLResponse.Columns[0];
+                var primaryKeyColumn = SQLResponse.PrimaryKey.Single(); // Fails if no primary key, or multiple keys
 
                 foreach (DataColumn column in SQLResponse.Columns)
                 {
