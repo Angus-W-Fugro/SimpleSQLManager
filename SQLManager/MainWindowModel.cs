@@ -353,9 +353,9 @@ public class MainWindowModel : Model
 
         ReadOnly = true;
 
-        var changedRows = SQLResponse.Rows.OfType<DataRow>().Where(dr => dr.RowState == DataRowState.Modified);
+        var changedRows = SQLResponse.GetChanges();
 
-        if (!changedRows.Any())
+        if (changedRows is null)
         {
             MessageBox.Show("No changes to save.");
             return;
@@ -371,7 +371,7 @@ public class MainWindowModel : Model
 
         try
         {
-            foreach (var row in changedRows)
+            foreach (DataRow row in changedRows.Rows)
             {
                 var command = connection.CreateCommand();
                 command.Transaction = transaction;
@@ -381,7 +381,8 @@ public class MainWindowModel : Model
                 var setClauses = new List<string>();
                 var parameters = new List<SqlParameter>();
 
-                var primaryKeyColumn = SQLResponse.PrimaryKey.Single(); // Fails if no primary key, or multiple keys
+                //var primaryKeyColumn = SQLResponse.PrimaryKey.Single(); // Fails if no primary key, or multiple keys
+                var primaryKeyColumn = SQLResponse.Columns[0];
 
                 foreach (DataColumn column in SQLResponse.Columns)
                 {
@@ -411,6 +412,7 @@ public class MainWindowModel : Model
 
             transaction.Commit();
             MessageBox.Show("Changes saved successfully.");
+            SQLResponse.AcceptChanges();
         }
         catch (Exception ex)
         {
