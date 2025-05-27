@@ -264,9 +264,11 @@ public class MainWindowModel : Model
         try
         {
             await connection.OpenAsync();
-            var reader = await connection.ExecuteReaderAsync(SQLText);
+            var adapter = new SqlDataAdapter(SQLText, connection);
+            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
             var dataTable = new DataTable();
-            dataTable.Load(reader);
+            adapter.Fill(dataTable);
+
             SQLResponse = dataTable;
         }
         catch (Exception ex)
@@ -285,46 +287,6 @@ public class MainWindowModel : Model
         }
     }
 
-    private static string GetSQLReaderOutput(DbDataReader reader)
-    {
-        if (!reader.HasRows)
-        {
-            return string.Empty;
-        }
-
-        var output = new StringBuilder();
-
-        var columns = new List<string>();
-
-        for (var i = 0; i < reader.FieldCount; i++)
-        {
-            columns.Add(reader.GetName(i));
-        }
-
-        output.AppendLine(string.Join("\t", columns));
-
-        var rows = new List<string[]>();
-
-        while (reader.Read())
-        {
-            var rowValues = new string[reader.FieldCount];
-
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                rowValues[i] = reader.GetValue(i).ToString() ?? string.Empty;
-            }
-
-            rows.Add(rowValues);
-        }
-
-        foreach (var row in rows)
-        {
-            output.AppendLine(string.Join("\t", row));
-        }
-
-        return output.ToString();
-    }
-
     public ICommand EditTableCommand => new Command(EditTable);
 
     public bool ReadOnly
@@ -337,8 +299,16 @@ public class MainWindowModel : Model
         }
     }
 
-    private void EditTable()
+    private async void EditTable()
     {
+        if (SelectedTable is null)
+        {
+            return;
+        }
+
+        SQLText = $"SELECT * FROM {SelectedTable.TableName}";
+        await ExecuteSql();
+
         ReadOnly = false;
     }
 
@@ -367,56 +337,23 @@ public class MainWindowModel : Model
 
         connection.Open();
 
-        using var transaction = connection.BeginTransaction();
-
         try
         {
-            foreach (DataRow row in changedRows.Rows)
-            {
-                var command = connection.CreateCommand();
-                command.Transaction = transaction;
+            var adapter = new SqlDataAdapter($"SELECT * FROM {SelectedTable.TableName}", connection);
 
-                var updateQuery = new StringBuilder($"UPDATE {SelectedTable.TableName} SET ");
+            var builder = new SqlCommandBuilder(adapter);
+            builder.QuotePrefix = "[";
+            builder.QuoteSuffix = "]";
 
-                var setClauses = new List<string>();
-                var parameters = new List<SqlParameter>();
+            builder.GetUpdateCommand();
 
-                //var primaryKeyColumn = SQLResponse.PrimaryKey.Single(); // Fails if no primary key, or multiple keys
-                var primaryKeyColumn = SQLResponse.Columns[0];
+            adapter.Update(changedRows);
 
-                foreach (DataColumn column in SQLResponse.Columns)
-                {
-                    if (column == primaryKeyColumn)
-                    {
-                        continue;
-                    }
-
-                    if (row[column] is not DBNull)
-                    {
-                        setClauses.Add($"[{column.ColumnName}] = @{column.ColumnName}");
-                        parameters.Add(new SqlParameter($"@{column.ColumnName}", row[column]));
-                    }
-                }
-
-                updateQuery.Append(string.Join(", ", setClauses));
-                updateQuery.Append(" WHERE ");
-
-                updateQuery.Append($"[{primaryKeyColumn.ColumnName}] = @{primaryKeyColumn.ColumnName}");
-                parameters.Add(new SqlParameter($"@{primaryKeyColumn.ColumnName}", row[primaryKeyColumn]));
-
-                command.CommandText = updateQuery.ToString();
-                command.Parameters.AddRange(parameters.ToArray());
-
-                await command.ExecuteNonQueryAsync();
-            }
-
-            transaction.Commit();
-            MessageBox.Show("Changes saved successfully.");
+            MessageBox.Show($"Changes to {changedRows.Rows.Count} row(s) saved.");
             SQLResponse.AcceptChanges();
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
             MessageBox.Show($"Error saving changes: {ex.Message}");
         }
     }
