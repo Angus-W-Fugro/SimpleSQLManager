@@ -37,6 +37,8 @@ public class DatabaseTable(string tableName, Database database) : Model, ICanQue
         Columns = columns;
     }
 
+    public ICommand ReloadCommand => new Command(async () => await Reload());
+
     public async Task Reload()
     {
         Columns = null;
@@ -47,7 +49,7 @@ public class DatabaseTable(string tableName, Database database) : Model, ICanQue
 
     private async Task SelectTop1000()
     {
-        await Database.Server.ExecuteSQL(this, $"SELECT TOP (1000) * FROM {TableName}");
+        await Database.Server.ExecuteSQL(this, $"SELECT TOP (1000) * FROM [{TableName}]");
     }
 
     public override string ToString()

@@ -31,6 +31,7 @@
                             <TextBlock.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Restore Backup" Command="{Binding RestoreBackupCommand}" />
+                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
                                 </ContextMenu>
                             </TextBlock.ContextMenu>
                         </TextBlock>
@@ -42,6 +43,7 @@
                                 <ContextMenu>
                                     <MenuItem Header="Create Backup" Command="{Binding CreateBackupCommand}" />
                                     <MenuItem Header="Drop" Command="{Binding DropDatabaseCommand}" />
+                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
                                 </ContextMenu>
                             </TextBlock.ContextMenu>
                         </TextBlock>
@@ -52,6 +54,7 @@
                             <TextBlock.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Select Top 1000" Command="{Binding SelectTop1000Command}" />
+                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
                                 </ContextMenu>
                             </TextBlock.ContextMenu>
                         </TextBlock>

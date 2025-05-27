@@ -25,6 +25,8 @@ public class Database(string name, SqlServer server) : Model, ICanQuery
         }
     }
 
+    public ICommand ReloadCommand => new Command(async () => await Reload());
+
     public async Task Load()
     {
         if (Tables is not null)

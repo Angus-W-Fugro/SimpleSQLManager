@@ -33,12 +33,14 @@ public class SqlServer(string name, Func<DatabaseTable, string, Task> executeSQL
 
         var query = "SELECT name FROM sys.databases";
 
-        var databaseNames = await SQLExecutor.QueryList(this, query);;
+        var databaseNames = await SQLExecutor.QueryList(this, query);
 
-        var databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, this)));
+        var databases = databaseNames.OrderBy(x => x).Select(name => new Database(name, this));
 
-        Databases = databases;
+        Databases = new ObservableCollection<Database>(databases);
     }
+
+    public ICommand ReloadCommand => new Command(async () => await Reload());
 
     public async Task Reload()
     {
