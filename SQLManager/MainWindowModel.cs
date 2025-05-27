@@ -12,7 +12,7 @@ namespace SQLManager;
 
 public class MainWindowModel : Model
 {
-    private ObservableCollection<SqlServer> _Servers = [ new SqlServer("localhost\\sqlexpress") ];
+    private ObservableCollection<SqlServer> _Servers;
     private SqlServer? _SelectedServer;
     private Database? _SelectedDatabase;
     private DatabaseTable? _SelectedTable;
@@ -23,6 +23,11 @@ public class MainWindowModel : Model
     private string? _NewServerName;
     private bool _ReadOnly = true;
     private string? _SelectedItemPath;
+
+    public MainWindowModel()
+    {
+        _Servers = [new SqlServer("localhost\\sqlexpress", ProgrammaticExecuteSQL)];
+    }
 
     public string? SelectedItemPath
     {
@@ -140,42 +145,10 @@ public class MainWindowModel : Model
         }
 
         var currentServers = Servers.ToList();
-        var newServer = new SqlServer(NewServerName);
+        var newServer = new SqlServer(NewServerName, ProgrammaticExecuteSQL);
         currentServers.Add(newServer);
 
         Servers = new ObservableCollection<SqlServer>(currentServers);
-    }
-
-    public async Task LoadTable(DatabaseTable table)
-    {
-        if (table.Columns is not null)
-        {
-            return;
-        }
-
-        var connectionString = SQLExecutor.CreateConnectionString(table.Database);
-
-        var columnNames = await GetColumnNames(connectionString, table.TableName);
-
-        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name, table)));
-
-        table.Columns = columns;
-    }
-
-    private async Task<string[]> GetColumnNames(string connectionString, string tableName)
-    {
-        var query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}'";
-        return await QueryList(connectionString, query);
-    }
-
-
-    private async Task<string[]> QueryList(string connectionString, string query)
-    {
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync();
-
-        var result = await connection.QueryAsync<string>(query);
-        return result.ToArray();
     }
 
     public async Task LoadSelected(object selectedItem)
@@ -191,14 +164,14 @@ public class MainWindowModel : Model
 
             if (selectedItem is Database database)
             {
-                await LoadDatabase(database);
+                await database.Load();
                 SelectedDatabase = database;
                 return;
             }
 
             if (selectedItem is DatabaseTable table)
             {
-                await LoadTable(table);
+                await table.Load();
                 SelectedTable = table;
                 return;
             }
@@ -213,22 +186,6 @@ public class MainWindowModel : Model
         {
             MessageBox.Show($"Error loading selected item: {ex.Message}");
         }
-    }
-
-    public async Task LoadDatabase(Database database)
-    {
-        if (database.Tables is not null)
-        {
-            return;
-        }
-
-        var connectionString = SQLExecutor.CreateConnectionString(database.Server.ServerName, database.DatabaseName);
-        var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
-        var tableNames = await QueryList(connectionString, query);
-
-        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database, ProgrammaticExecuteSQL)));
-
-        database.Tables = tables;
     }
 
     public string? SQLText
@@ -368,11 +325,18 @@ public class MainWindowModel : Model
     }
 }
 
-public class SqlServer(string name) : Model
+public interface ICanQuery
+{
+
+}
+
+public class SqlServer(string name, Func<DatabaseTable, string, Task> executeSQL) : Model, ICanQuery
 {
     private ObservableCollection<Database>? _Databases;
 
     public string ServerName { get; } = name;
+
+    public Func<DatabaseTable, string, Task> ExecuteSQL { get; } = executeSQL;
 
     public ObservableCollection<Database>? Databases
     {
@@ -478,7 +442,7 @@ public class SqlServer(string name) : Model
     }
 }
 
-public class Database(string name, SqlServer server) : Model
+public class Database(string name, SqlServer server) : Model, ICanQuery
 {
     private ObservableCollection<DatabaseTable>? _Tables;
 
@@ -494,6 +458,28 @@ public class Database(string name, SqlServer server) : Model
             _Tables = value;
             NotifyPropertyChanged();
         }
+    }
+
+    public async Task Load()
+    {
+        if (Tables is not null)
+        {
+            return;
+        }
+
+        var connectionString = SQLExecutor.CreateConnectionString(Server.ServerName, DatabaseName);
+        var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
+        var tableNames = await SQLExecutor.QueryList(this, query);
+
+        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, this)));
+
+        Tables = tables;
+    }
+
+    public async Task Reload()
+    {
+        Tables = null;
+        await Load();
     }
 
     public ICommand CreateBackupCommand => new Command(async () => await CreateBackup());
@@ -554,7 +540,7 @@ public class Database(string name, SqlServer server) : Model
     }
 }
 
-public class DatabaseTable(string tableName, Database database, Func<DatabaseTable, string, Task> executeSQL) : Model
+public class DatabaseTable(string tableName, Database database) : Model, ICanQuery
 {
     private ObservableCollection<DatabaseColumn>? _Columns;
 
@@ -572,11 +558,32 @@ public class DatabaseTable(string tableName, Database database, Func<DatabaseTab
         }
     }
 
+    public async Task Load()
+    {
+        if (Columns is not null)
+        {
+            return;
+        }
+
+        var query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{TableName}'";
+        var columnNames = await SQLExecutor.QueryList(this, query);
+
+        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name, this)));
+
+        Columns = columns;
+    }
+
+    public async Task Reload()
+    {
+        Columns = null;
+        await Load();
+    }
+
     public ICommand SelectTop1000Command => new Command(async () => await SelectTop1000());
 
     private async Task SelectTop1000()
     {
-        await executeSQL(this, $"SELECT TOP (1000) * FROM {TableName}");
+        await Database.Server.ExecuteSQL(this, $"SELECT TOP (1000) * FROM {TableName}");
     }
 
     public override string ToString()
@@ -609,6 +616,26 @@ public class SQLExecutor
         return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
     }
 
+    public static string CreateConnectionString(ICanQuery canQuery)
+    {
+        if (canQuery is SqlServer server)
+        {
+            return CreateConnectionString(server);
+        }
+
+        if (canQuery is Database database)
+        {
+            return CreateConnectionString(database);
+        }
+
+        if (canQuery is DatabaseTable table)
+        {
+            return CreateConnectionString(table.Database.Server.ServerName, table.Database.DatabaseName);
+        }
+
+        throw new ArgumentException("Unsupported type for ICanQuery");
+    }
+
     public static string CreateConnectionString(string serverName)
     {
         return $"Data Source={serverName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
@@ -619,16 +646,9 @@ public class SQLExecutor
         return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
     }
 
-    public static Task ExecuteAsync(SqlServer server, string sql)
+    public static Task ExecuteAsync(ICanQuery canQuery, string sql)
     {
-        var connectionString = CreateConnectionString(server);
-
-        return ExecuteAsync(connectionString, sql);
-    }
-
-    public static Task ExecuteAsync(Database database, string sql)
-    {
-        var connectionString = CreateConnectionString(database);
+        var connectionString = CreateConnectionString(canQuery);
 
         return ExecuteAsync(connectionString, sql);
     }
@@ -642,16 +662,9 @@ public class SQLExecutor
         await command.ExecuteNonQueryAsync();
     }
 
-    public static async Task<string[]> QueryList(SqlServer server, string query)
+    public static async Task<string[]> QueryList(ICanQuery canQuery, string query)
     {
-        var connectionString = CreateConnectionString(server);
-
-        return await QueryList(connectionString, query);
-    }
-
-    public static async Task<string[]> QueryList(Database database, string query)
-    {
-        var connectionString = CreateConnectionString(database);
+        var connectionString = CreateConnectionString(canQuery);
 
         return await QueryList(connectionString, query);
     }
@@ -662,7 +675,7 @@ public class SQLExecutor
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<string>(query);
-        return result.OrderBy(x => x).ToArray();
+        return result.ToArray();
     }
 
     /// <summary>
@@ -673,10 +686,16 @@ public class SQLExecutor
         var tempPath = @"C:\temp";
         var tempBackupsFolder = Path.Combine(tempPath, "Backups");
         Directory.CreateDirectory(tempBackupsFolder);
-        var tempFolder = Path.Combine(tempBackupsFolder, Guid.NewGuid().ToString());
-        var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{tempFolder}'";
+        var serverFolder = Path.Combine(tempBackupsFolder, server.ServerName);
+
+        if (Directory.Exists(serverFolder))
+        {
+            return serverFolder;
+        }
+
+        var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{serverFolder}'";
         await ExecuteAsync(server, createFolderCmd);
-        return tempFolder;
+        return serverFolder;
     }
 
     public static async Task<string> MakePathAccessible(string path, SqlServer server)
