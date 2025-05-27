@@ -94,10 +94,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="{Binding SelectedServer.ServerName}" Margin="0,0,8,0" />
-                <TextBlock Grid.Column="1" Text="{Binding SelectedDatabase.DatabaseName}" Margin="0,0,8,0" />
-                <TextBlock Grid.Column="2" Text="{Binding SelectedTable.TableName}" Margin="0,0,8,0" />
-                <TextBlock Grid.Column="3" Text="{Binding SelectedColumn.ColumnName}" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="0" Text="{Binding SelectedItemPath}" Margin="0,0,8,0" />
             </Grid>
             
             <Grid Grid.Row="1">

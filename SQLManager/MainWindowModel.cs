@@ -22,6 +22,44 @@ public class MainWindowModel : Model
     private DataTable? _SQLResponse;
     private string? _NewServerName;
     private bool _ReadOnly = true;
+    private string? _SelectedItemPath;
+
+    public string? SelectedItemPath
+    {
+        get => _SelectedItemPath;
+        set
+        {
+            _SelectedItemPath = value;
+            NotifyPropertyChanged();
+        }
+    }
+
+    private void UpdateSelectedItemPath()
+    {
+        var selectedItemNames = new List<string>();
+
+        if (SelectedServer is not null)
+        {
+            selectedItemNames.Add(SelectedServer.ServerName);
+        }
+
+        if (SelectedDatabase is not null)
+        {
+            selectedItemNames.Add(SelectedDatabase.DatabaseName);
+        }
+
+        if (SelectedTable is not null)
+        {
+            selectedItemNames.Add(SelectedTable.TableName);
+        }
+
+        if (SelectedColumn is not null)
+        {
+            selectedItemNames.Add(SelectedColumn.ColumnName);
+        }
+
+        SelectedItemPath = string.Join(" > ", selectedItemNames);
+    }
 
     public ObservableCollection<SqlServer> Servers
     {
@@ -76,6 +114,8 @@ public class MainWindowModel : Model
         {
             _SelectedColumn = value;
             NotifyPropertyChanged();
+
+            UpdateSelectedItemPath();
         }
     }
 
@@ -135,7 +175,7 @@ public class MainWindowModel : Model
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<string>(query);
-        return result.OrderBy(x => x).ToArray();
+        return result.ToArray();
     }
 
     public async Task LoadSelected(object selectedItem)
@@ -160,6 +200,12 @@ public class MainWindowModel : Model
             {
                 await LoadTable(table);
                 SelectedTable = table;
+                return;
+            }
+
+            if (selectedItem is DatabaseColumn column)
+            {
+                SelectedColumn = column;
                 return;
             }
         }
