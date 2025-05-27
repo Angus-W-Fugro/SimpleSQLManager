@@ -3,6 +3,8 @@ using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -113,7 +115,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(server.ServerName);
+        var connectionString = SQLExecutor.CreateConnectionString(server.ServerName);
 
         var databaseNames = await GetDatabaseNames(connectionString);
 
@@ -129,7 +131,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(table.Database);
+        var connectionString = SQLExecutor.CreateConnectionString(table.Database);
 
         var columnNames = await GetColumnNames(connectionString, table.TableName);
 
@@ -144,25 +146,7 @@ public class MainWindowModel : Model
         return await QueryList(connectionString, query);
     }
 
-    private static string CreateConnectionString(SqlServer server)
-    {
-        return CreateConnectionString(server.ServerName);
-    }
-
-    private static string CreateConnectionString(Database database)
-    {
-        return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
-    }
-
-    private static string CreateConnectionString(string serverName)
-    {
-        return $"Data Source={serverName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
-    }
-
-    private static string CreateConnectionString(string serverName, string databaseName)
-    {
-        return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
-    }
+    
 
     private async Task<string[]> GetDatabaseNames(string connectionString)
     {
@@ -217,7 +201,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(database.Server.ServerName, database.DatabaseName);
+        var connectionString = SQLExecutor.CreateConnectionString(database.Server.ServerName, database.DatabaseName);
         var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
         var tableNames = await QueryList(connectionString, query);
 
@@ -252,7 +236,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(SelectedDatabase);
+        var connectionString = SQLExecutor.CreateConnectionString(SelectedDatabase);
 
         using var connection = new SqlConnection(connectionString);
 
@@ -335,7 +319,7 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = CreateConnectionString(SelectedDatabase);
+        var connectionString = SQLExecutor.CreateConnectionString(SelectedDatabase);
 
         using var connection = new SqlConnection(connectionString);
 
@@ -403,6 +387,45 @@ public class Database(string name, SqlServer server) : Model
         }
     }
 
+    public ICommand CreateBackupCommand => new Command(async () => await CreateBackup());
+
+    public async Task CreateBackup()
+    {
+        var tempFolder = await CreateAccessibleFolder();
+        var backupName = $"{DatabaseName}_{DateTime.Now:yyyy_MM_dd_HHmmss}.bak";
+        var tempBackupPath = Path.Combine(tempFolder, backupName);
+        var backupCmd = $"BACKUP DATABASE [{DatabaseName}] TO DISK = '{tempBackupPath}'";
+        await SQLExecutor.ExecuteAsync(this, backupCmd);
+        var downloadsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        var backupPath = Path.Combine(downloadsFolder, backupName);
+        
+        File.Move(tempBackupPath, backupPath, true);
+
+        // Open in Explorer
+        var psi = new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $"/select,\"{backupPath}\"",
+            UseShellExecute = true
+        };
+
+        Process.Start(psi);
+    }
+
+    /// <summary>
+    /// SQL server only has permission to write to folders it specifically creates
+    /// </summary>
+    private async Task<string> CreateAccessibleFolder()
+    {
+        var tempPath = @"C:\temp";
+        var tempBackupsFolder = Path.Combine(tempPath, "Backups");
+        Directory.CreateDirectory(tempBackupsFolder);
+        var tempFolder = Path.Combine(tempBackupsFolder, Guid.NewGuid().ToString());
+        var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{tempFolder}'";
+        await SQLExecutor.ExecuteAsync(this, createFolderCmd);
+        return tempFolder;
+    }
+
     public override string ToString()
     {
         return DatabaseName;
@@ -449,5 +472,44 @@ public class DatabaseColumn(string name, DatabaseTable table) : Model
     public override string ToString()
     {
         return ColumnName;
+    }
+}
+
+public class SQLExecutor
+{
+    public static string CreateConnectionString(SqlServer server)
+    {
+        return CreateConnectionString(server.ServerName);
+    }
+
+    public static string CreateConnectionString(Database database)
+    {
+        return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
+    }
+
+    public static string CreateConnectionString(string serverName)
+    {
+        return $"Data Source={serverName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
+    }
+
+    public static string CreateConnectionString(string serverName, string databaseName)
+    {
+        return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
+    }
+
+    public static Task ExecuteAsync(Database database, string sql)
+    {
+        var connectionString = CreateConnectionString(database);
+
+        return ExecuteAsync(connectionString, sql);
+    }
+
+    public static async Task ExecuteAsync(string connectionString, string sql)
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        using var command = new SqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync();
     }
 }

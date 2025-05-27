@@ -31,7 +31,14 @@
                     </HierarchicalDataTemplate>
 
                     <HierarchicalDataTemplate DataType="{x:Type local:Database}" ItemsSource="{Binding Tables}">
-                        <TextBlock Text="{Binding DatabaseName}" />
+                        <TextBlock Text="{Binding DatabaseName}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Create Backup" Command="{Binding CreateBackupCommand}" />
+                                    <MenuItem Header="Drop" Command="{Binding DropDatabaseCommand}" />
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
                     </HierarchicalDataTemplate>
 
                     <HierarchicalDataTemplate DataType="{x:Type local:DatabaseTable}" ItemsSource="{Binding Columns}">
