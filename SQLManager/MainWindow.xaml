@@ -35,7 +35,13 @@
                     </HierarchicalDataTemplate>
 
                     <HierarchicalDataTemplate DataType="{x:Type local:DatabaseTable}" ItemsSource="{Binding Columns}">
-                        <TextBlock Text="{Binding TableName}" />
+                        <TextBlock Text="{Binding TableName}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Select Top 1000" Command="{Binding SelectTop1000Command}" />
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
                     </HierarchicalDataTemplate>
 
                     <HierarchicalDataTemplate DataType="{x:Type local:DatabaseColumn}">

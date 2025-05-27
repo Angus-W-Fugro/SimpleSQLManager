@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Xml;
 
 namespace SQLManager;
 
@@ -220,7 +221,7 @@ public class MainWindowModel : Model
         var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
         var tableNames = await QueryList(connectionString, query);
 
-        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database)));
+        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, database, ProgrammaticExecuteSQL)));
 
         database.Tables = tables;
     }
@@ -235,25 +236,19 @@ public class MainWindowModel : Model
         }
     }
 
-    public ICommand ExecuteSqlCommand => new Command(async () => await ExecuteSql());
+    public ICommand ExecuteSqlCommand => new Command(async () => await ExecuteSQL());
 
-    public async Task ExecuteSql()
+    public async Task ExecuteSQL()
     {
-        if (Servers.Count == 0)
+        if (SelectedDatabase is null)
         {
-            MessageBox.Show("Please connect to a server first.");
+            MessageBox.Show("Database not selected");
             return;
         }
 
         if (string.IsNullOrEmpty(SQLText))
         {
-            MessageBox.Show("Please enter a SQL command.");
-            return;
-        }
-
-        if (SelectedDatabase is null)
-        {
-            MessageBox.Show("Please select a database.");
+            MessageBox.Show("No SQL query");
             return;
         }
 
@@ -275,6 +270,15 @@ public class MainWindowModel : Model
         {
             MessageBox.Show($"Error executing command: {ex.Message}");
         }
+    }
+
+    public async Task ProgrammaticExecuteSQL(DatabaseTable table, string sql)
+    {
+        SelectedServer = table.Database.Server;
+        SelectedDatabase = table.Database;
+        SelectedTable = table;
+        SQLText = sql;
+        await ExecuteSQL();
     }
 
     public DataTable? SQLResponse
@@ -307,7 +311,7 @@ public class MainWindowModel : Model
         }
 
         SQLText = $"SELECT * FROM {SelectedTable.TableName}";
-        await ExecuteSql();
+        await ExecuteSQL();
 
         ReadOnly = false;
     }
@@ -405,7 +409,7 @@ public class Database(string name, SqlServer server) : Model
     }
 }
 
-public class DatabaseTable(string tableName, Database database) : Model
+public class DatabaseTable(string tableName, Database database, Func<DatabaseTable, string, Task> executeSQL) : Model
 {
     private ObservableCollection<DatabaseColumn>? _Columns;
 
@@ -421,6 +425,13 @@ public class DatabaseTable(string tableName, Database database) : Model
             _Columns = value;
             NotifyPropertyChanged();
         }
+    }
+
+    public ICommand SelectTop1000Command => new Command(async () => await SelectTop1000());
+
+    private async Task SelectTop1000()
+    {
+        await executeSQL(this, $"SELECT TOP (1000) * FROM {TableName}");
     }
 
     public override string ToString()

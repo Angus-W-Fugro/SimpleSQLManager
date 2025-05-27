@@ -23,7 +23,7 @@ public partial class MainWindow
     {
         if (e.Key == Key.Enter)
         {
-            _ = _Model.ExecuteSql();
+            _ = _Model.ExecuteSQL();
         }
     }
 
