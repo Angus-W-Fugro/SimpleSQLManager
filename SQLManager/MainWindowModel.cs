@@ -19,10 +19,13 @@ public class MainWindowModel : Model
     private string? _NewServerName;
     private bool _ReadOnly = true;
     private string? _SelectedItemPath;
+    private QueryTab? _SelectedTab;
+    private QueryTabManager _QueryTabManager;
 
     public MainWindowModel()
     {
-        _Servers = [new SqlServer("localhost\\sqlexpress", ProgrammaticExecuteSQL)];
+        _QueryTabManager = new QueryTabManager(CreateNewTab);
+        _Servers = [new SqlServer("localhost\\sqlexpress", _QueryTabManager)];
     }
 
     public string? SelectedItemPath
@@ -141,7 +144,7 @@ public class MainWindowModel : Model
         }
 
         var currentServers = Servers.ToList();
-        var newServer = new SqlServer(NewServerName, ProgrammaticExecuteSQL);
+        var newServer = new SqlServer(NewServerName, _QueryTabManager);
         currentServers.Add(newServer);
 
         Servers = new ObservableCollection<SqlServer>(currentServers);
@@ -221,13 +224,17 @@ public class MainWindowModel : Model
         }
     }
 
-    public async Task ProgrammaticExecuteSQL(DatabaseTable table, string sql)
+    public QueryTabModel CreateNewTab(Database database)
     {
-        SelectedServer = table.Database.Server;
-        SelectedDatabase = table.Database;
-        SelectedTable = table;
-        SQLText = sql;
-        await ExecuteSQL();
+        var queryTabModel = new QueryTabModel(database);
+
+        var queryTab = new QueryTab(queryTabModel);
+
+        QueryTabs.Add(queryTab);
+
+        SelectedTab = queryTab;
+
+        return queryTabModel;
     }
 
     public DataTable? SQLResponse
@@ -308,6 +315,18 @@ public class MainWindowModel : Model
         catch (Exception ex)
         {
             MessageBox.Show($"Error saving changes: {ex.Message}");
+        }
+    }
+
+    public ObservableCollection<QueryTab> QueryTabs { get; } = [];
+
+    public QueryTab? SelectedTab
+    {
+        get => _SelectedTab;
+        set
+        {
+            _SelectedTab = value;
+            NotifyPropertyChanged();
         }
     }
 }

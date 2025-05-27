@@ -49,7 +49,11 @@ public class DatabaseTable(string tableName, Database database) : Model, ICanQue
 
     private async Task SelectTop1000()
     {
-        await Database.Server.ExecuteSQL(this, $"SELECT TOP (1000) * FROM [{TableName}]");
+        var queryTab = Database.Server.QueryTabManager.CreateNewTab(Database);
+
+        queryTab.SQLText = $"SELECT TOP (1000) * FROM [{TableName}]";
+
+        await queryTab.ExecuteSQL();
     }
 
     public override string ToString()

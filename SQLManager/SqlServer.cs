@@ -6,13 +6,13 @@ using System.Windows.Input;
 
 namespace SQLManager;
 
-public class SqlServer(string name, Func<DatabaseTable, string, Task> executeSQL) : Model, ICanQuery
+public class SqlServer(string name, QueryTabManager queryTabManager) : Model, ICanQuery
 {
     private ObservableCollection<Database>? _Databases;
 
     public string ServerName { get; } = name;
 
-    public Func<DatabaseTable, string, Task> ExecuteSQL { get; } = executeSQL;
+    public QueryTabManager QueryTabManager { get; } = queryTabManager;
 
     public ObservableCollection<Database>? Databases
     {

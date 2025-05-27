@@ -41,6 +41,7 @@
                         <TextBlock Text="{Binding DatabaseName}">
                             <TextBlock.ContextMenu>
                                 <ContextMenu>
+                                    <MenuItem Header="New Query" Command="{Binding NewQueryCommand}" />
                                     <MenuItem Header="Create Backup" Command="{Binding CreateBackupCommand}" />
                                     <MenuItem Header="Drop" Command="{Binding DropDatabaseCommand}" />
                                     <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
@@ -82,7 +83,15 @@
         <GridSplitter Grid.Column="1" Width="2" ResizeBehavior="PreviousAndNext" />
 
         <Grid Grid.Column="2" Margin="12">
-            <Grid.RowDefinitions>
+            <TabControl ItemsSource="{Binding QueryTabs}" SelectedItem="{Binding SelectedTab}">
+                <TabControl.ItemContainerStyle>
+                    <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                        <Setter Property="Header" Value="{Binding TabHeader}"/>
+                    </Style>
+                </TabControl.ItemContainerStyle>
+            </TabControl>
+
+            <!--<Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -122,7 +131,7 @@
 
                 <Button Grid.Column="0" Content="Edit" Command="{Binding EditTableCommand}" Margin="0,0,8,0" />
                 <Button Grid.Column="1" Content="Save changes" Command="{Binding SaveTableCommand}" Margin="0,0,8,0" />
-            </Grid>
+            </Grid>-->
         </Grid>
     </Grid>
 </Window>

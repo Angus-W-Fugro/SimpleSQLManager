@@ -49,6 +49,13 @@ public class Database(string name, SqlServer server) : Model, ICanQuery
         await Load();
     }
 
+    public ICommand NewQueryCommand => new Command(OpenNewQuery);
+
+    private void OpenNewQuery()
+    {
+        Server.QueryTabManager.CreateNewTab(this);
+    }
+
     public ICommand CreateBackupCommand => new Command(async () => await CreateBackup());
 
     public async Task CreateBackup()
