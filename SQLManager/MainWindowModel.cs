@@ -214,18 +214,9 @@ public class MainWindowModel : Model
             return;
         }
 
-        var connectionString = SQLExecutor.CreateConnectionString(SelectedDatabase);
-
-        using var connection = new SqlConnection(connectionString);
-
         try
         {
-            await connection.OpenAsync();
-            var adapter = new SqlDataAdapter(SQLText, connection);
-            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
-            var dataTable = new DataTable();
-            adapter.Fill(dataTable);
-
+            var dataTable = await SQLExecutor.QueryTable(SelectedDatabase, SQLText);
             SQLResponse = dataTable;
         }
         catch (Exception ex)
@@ -676,6 +667,29 @@ public class SQLExecutor
 
         var result = await connection.QueryAsync<string>(query);
         return result.ToArray();
+    }
+
+    public static async Task<DataTable> QueryTable(ICanQuery canQuery, string query)
+    {
+        var connectionString = CreateConnectionString(canQuery);
+        return await QueryTable(connectionString, query);
+    }
+
+    public static async Task<DataTable> QueryTable(string connectionString, string query)
+    {
+        var dataTable = new DataTable();
+
+        await Task.Run(() =>
+        {
+            using var connection = new SqlConnection(connectionString);
+            using var command = new SqlCommand(query, connection);
+            using var adapter = new SqlDataAdapter(command);
+            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+
+            adapter.Fill(dataTable);
+        });
+
+        return dataTable;
     }
 
     /// <summary>
