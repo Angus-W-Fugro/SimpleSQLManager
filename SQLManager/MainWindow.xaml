@@ -55,6 +55,7 @@
                             <TextBlock.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Select Top 1000" Command="{Binding SelectTop1000Command}" />
+                                    <MenuItem Header="Edit Data" Command="{Binding EditDataCommand}" />
                                     <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
                                 </ContextMenu>
                             </TextBlock.ContextMenu>

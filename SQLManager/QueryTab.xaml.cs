@@ -14,7 +14,7 @@ public partial class QueryTab
         InitializeComponent();
     }
 
-    public string TabHeader => $"{Model.Database.DatabaseName}";
+    public string TabHeader => Model.TabHeader;
 
     public QueryTabModel Model { get; }
 

@@ -19,14 +19,6 @@ public partial class MainWindow
         InitializeComponent();
     }
 
-    private void SQLTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            _ = _Model.ExecuteSQL();
-        }
-    }
-
     private async void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         await _Model.LoadSelected(e.NewValue);

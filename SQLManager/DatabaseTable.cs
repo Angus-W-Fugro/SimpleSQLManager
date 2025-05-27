@@ -56,6 +56,21 @@ public class DatabaseTable(string tableName, Database database) : Model, ICanQue
         await queryTab.ExecuteSQL();
     }
 
+    public ICommand EditDataCommand => new Command(async () => await EditData());
+
+    private async Task EditData()
+    {
+        var header = $"Edit {Database.DatabaseName}.{TableName}";
+
+        var queryTab = Database.Server.QueryTabManager.CreateNewTab(header, Database);
+
+        queryTab.ReadOnly = false;
+
+        queryTab.SQLText = $"SELECT * FROM [{TableName}]";
+
+        await queryTab.ExecuteSQL();
+    }
+
     public override string ToString()
     {
         return TableName;

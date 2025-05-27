@@ -187,46 +187,9 @@ public class MainWindowModel : Model
         }
     }
 
-    public string? SQLText
+    public QueryTabModel CreateNewTab(string header, Database database)
     {
-        get => _SQLText;
-        set
-        {
-            _SQLText = value;
-            NotifyPropertyChanged();
-        }
-    }
-
-    public ICommand ExecuteSqlCommand => new Command(async () => await ExecuteSQL());
-
-    public async Task ExecuteSQL()
-    {
-        if (SelectedDatabase is null)
-        {
-            MessageBox.Show("Database not selected");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(SQLText))
-        {
-            MessageBox.Show("No SQL query");
-            return;
-        }
-
-        try
-        {
-            var dataTable = await SQLExecutor.QueryTable(SelectedDatabase, SQLText);
-            SQLResponse = dataTable;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error executing command: {ex.Message}");
-        }
-    }
-
-    public QueryTabModel CreateNewTab(Database database)
-    {
-        var queryTabModel = new QueryTabModel(database);
+        var queryTabModel = new QueryTabModel(header, database);
 
         var queryTab = new QueryTab(queryTabModel);
 
@@ -235,87 +198,6 @@ public class MainWindowModel : Model
         SelectedTab = queryTab;
 
         return queryTabModel;
-    }
-
-    public DataTable? SQLResponse
-    {
-        get => _SQLResponse;
-        set
-        {
-            _SQLResponse = value;
-            NotifyPropertyChanged();
-        }
-    }
-
-    public ICommand EditTableCommand => new Command(EditTable);
-
-    public bool ReadOnly
-    {
-        get => _ReadOnly;
-        set
-        {
-            _ReadOnly = value;
-            NotifyPropertyChanged();
-        }
-    }
-
-    private async void EditTable()
-    {
-        if (SelectedTable is null)
-        {
-            return;
-        }
-
-        SQLText = $"SELECT * FROM {SelectedTable.TableName}";
-        await ExecuteSQL();
-
-        ReadOnly = false;
-    }
-
-    public ICommand SaveTableCommand => new Command(async () => await SaveTable());
-
-    private async Task SaveTable()
-    {
-        if (SQLResponse is null || SelectedDatabase is null || SelectedTable is null)
-        {
-            return;
-        }
-
-        ReadOnly = true;
-
-        var changedRows = SQLResponse.GetChanges();
-
-        if (changedRows is null)
-        {
-            MessageBox.Show("No changes to save.");
-            return;
-        }
-
-        var connectionString = SQLExecutor.CreateConnectionString(SelectedDatabase);
-
-        using var connection = new SqlConnection(connectionString);
-
-        connection.Open();
-
-        try
-        {
-            var adapter = new SqlDataAdapter($"SELECT * FROM {SelectedTable.TableName}", connection);
-
-            var builder = new SqlCommandBuilder(adapter);
-            builder.QuotePrefix = "[";
-            builder.QuoteSuffix = "]";
-
-            builder.GetUpdateCommand();
-
-            adapter.Update(changedRows);
-
-            MessageBox.Show($"Changes to {changedRows.Rows.Count} row(s) saved.");
-            SQLResponse.AcceptChanges();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error saving changes: {ex.Message}");
-        }
     }
 
     public ObservableCollection<QueryTab> QueryTabs { get; } = [];
