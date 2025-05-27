@@ -2,13 +2,10 @@
 using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.Data;
-using System.Data.Common;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using System.Xml;
 
 namespace SQLManager;
 
@@ -108,22 +105,6 @@ public class MainWindowModel : Model
         Servers = new ObservableCollection<SqlServer>(currentServers);
     }
 
-    public async Task LoadServer(SqlServer server)
-    {
-        if (server.Databases is not null)
-        {
-            return;
-        }
-
-        var connectionString = SQLExecutor.CreateConnectionString(server.ServerName);
-
-        var databaseNames = await GetDatabaseNames(connectionString);
-
-        var databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, server)));
-
-        server.Databases = databases;
-    }
-
     public async Task LoadTable(DatabaseTable table)
     {
         if (table.Columns is not null)
@@ -146,13 +127,6 @@ public class MainWindowModel : Model
         return await QueryList(connectionString, query);
     }
 
-    
-
-    private async Task<string[]> GetDatabaseNames(string connectionString)
-    {
-        var query = "SELECT name FROM sys.databases";
-        return await QueryList(connectionString, query);
-    }
 
     private async Task<string[]> QueryList(string connectionString, string query)
     {
@@ -169,7 +143,7 @@ public class MainWindowModel : Model
         {
             if (selectedItem is SqlServer server)
             {
-                await LoadServer(server);
+                await server.Load();
                 SelectedServer = server;
                 return;
             }
@@ -363,6 +337,28 @@ public class SqlServer(string name) : Model
         }
     }
 
+    public async Task Load()
+    {
+        if (Databases is not null)
+        {
+            return;
+        }
+
+        var query = "SELECT name FROM sys.databases";
+
+        var databaseNames = await SQLExecutor.QueryList(this, query);;
+
+        var databases = new ObservableCollection<Database>(databaseNames.Select(name => new Database(name, this)));
+
+        Databases = databases;
+    }
+
+    public async Task Reload()
+    {
+        Databases = null;
+        await Load();
+    }
+
     public override string ToString()
     {
         return ServerName;
@@ -424,6 +420,33 @@ public class Database(string name, SqlServer server) : Model
         var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{tempFolder}'";
         await SQLExecutor.ExecuteAsync(this, createFolderCmd);
         return tempFolder;
+    }
+
+    public ICommand DropDatabaseCommand => new Command(async () => await DropDatabase());
+
+    private async Task DropDatabase()
+    {
+        if (MessageBox.Show($"Are you sure you want to drop the database '{DatabaseName}'?", "Confirm Drop", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var dropDatabaseCmd = $@"IF EXISTS (SELECT name FROM sys.databases WHERE (name = '{DatabaseName}'))
+                                     BEGIN
+                                        ALTER DATABASE [{DatabaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+                                        DROP DATABASE [{DatabaseName}]
+                                     END";
+
+        try
+        {
+            await SQLExecutor.ExecuteAsync(Server, dropDatabaseCmd);
+            await Server.Reload();
+            MessageBox.Show($"Database '{DatabaseName}' dropped successfully.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error dropping database: {ex.Message}");
+        }
     }
 
     public override string ToString()
@@ -497,6 +520,13 @@ public class SQLExecutor
         return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
     }
 
+    public static Task ExecuteAsync(SqlServer server, string sql)
+    {
+        var connectionString = CreateConnectionString(server);
+
+        return ExecuteAsync(connectionString, sql);
+    }
+
     public static Task ExecuteAsync(Database database, string sql)
     {
         var connectionString = CreateConnectionString(database);
@@ -511,5 +541,28 @@ public class SQLExecutor
 
         using var command = new SqlCommand(sql, connection);
         await command.ExecuteNonQueryAsync();
+    }
+
+    public static async Task<string[]> QueryList(SqlServer server, string query)
+    {
+        var connectionString = CreateConnectionString(server);
+
+        return await QueryList(connectionString, query);
+    }
+
+    public static async Task<string[]> QueryList(Database database, string query)
+    {
+        var connectionString = CreateConnectionString(database);
+
+        return await QueryList(connectionString, query);
+    }
+
+    public static async Task<string[]> QueryList(string connectionString, string query)
+    {
+        using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        var result = await connection.QueryAsync<string>(query);
+        return result.OrderBy(x => x).ToArray();
     }
 }
