@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
@@ -359,6 +360,72 @@ public class SqlServer(string name) : Model
         await Load();
     }
 
+    public ICommand RestoreBackupCommand => new Command(async () => await RestoreBackup());
+
+    private async Task RestoreBackup()
+    {
+        var backupPath = GetBackupFilePath();
+
+        if (string.IsNullOrEmpty(backupPath))
+        {
+            return;
+        }
+
+        try
+        {
+            backupPath = await SQLExecutor.MakePathAccessible(backupPath, this);
+
+            // Get list of files in the backup
+            var query = $"RESTORE FILELISTONLY FROM DISK = '{backupPath}'";
+
+            var filesInBackup = await SQLExecutor.QueryList(this, query);
+
+            var databaseName = filesInBackup.FirstOrDefault(f => !f.EndsWith("_log"));
+
+            if (databaseName is null)
+            {
+                throw new InvalidOperationException("Backup corrupted");
+            }
+
+            var logName = filesInBackup.First(f => f.EndsWith("_log"));
+
+            var restoreCmd = @$"IF EXISTS (SELECT name FROM sys.databases WHERE (name = '{databaseName}'))
+                                     BEGIN
+                                        ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+                                     END
+
+                                RESTORE DATABASE [{databaseName}] FROM DISK = '{backupPath}' WITH REPLACE, RECOVERY
+                                ALTER DATABASE [{databaseName}] SET MULTI_USER";
+
+            await SQLExecutor.ExecuteAsync(this, restoreCmd);
+
+            await Reload();
+
+            MessageBox.Show($"Database '{databaseName}' restored");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error restoring backup: {ex.Message}");
+            return;
+        }
+    }
+
+    private string? GetBackupFilePath()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select backup file",
+            Filter = "Database backups (*.zip, *.bak)|*.zip;*.bak",
+        };
+
+        if (!dialog.ShowDialog().GetValueOrDefault())
+        {
+            return null;
+        }
+
+        return dialog.FileName;
+    }
+
     public override string ToString()
     {
         return ServerName;
@@ -387,7 +454,7 @@ public class Database(string name, SqlServer server) : Model
 
     public async Task CreateBackup()
     {
-        var tempFolder = await CreateAccessibleFolder();
+        var tempFolder = await SQLExecutor.CreateAccessibleFolder(Server);
         var backupName = $"{DatabaseName}_{DateTime.Now:yyyy_MM_dd_HHmmss}.bak";
         var tempBackupPath = Path.Combine(tempFolder, backupName);
         var backupCmd = $"BACKUP DATABASE [{DatabaseName}] TO DISK = '{tempBackupPath}'";
@@ -406,20 +473,6 @@ public class Database(string name, SqlServer server) : Model
         };
 
         Process.Start(psi);
-    }
-
-    /// <summary>
-    /// SQL server only has permission to write to folders it specifically creates
-    /// </summary>
-    private async Task<string> CreateAccessibleFolder()
-    {
-        var tempPath = @"C:\temp";
-        var tempBackupsFolder = Path.Combine(tempPath, "Backups");
-        Directory.CreateDirectory(tempBackupsFolder);
-        var tempFolder = Path.Combine(tempBackupsFolder, Guid.NewGuid().ToString());
-        var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{tempFolder}'";
-        await SQLExecutor.ExecuteAsync(this, createFolderCmd);
-        return tempFolder;
     }
 
     public ICommand DropDatabaseCommand => new Command(async () => await DropDatabase());
@@ -564,5 +617,28 @@ public class SQLExecutor
 
         var result = await connection.QueryAsync<string>(query);
         return result.OrderBy(x => x).ToArray();
+    }
+
+    /// <summary>
+    /// SQL server only has permission to write to folders it specifically creates
+    /// </summary>
+    public static async Task<string> CreateAccessibleFolder(SqlServer server)
+    {
+        var tempPath = @"C:\temp";
+        var tempBackupsFolder = Path.Combine(tempPath, "Backups");
+        Directory.CreateDirectory(tempBackupsFolder);
+        var tempFolder = Path.Combine(tempBackupsFolder, Guid.NewGuid().ToString());
+        var createFolderCmd = $"EXECUTE master.dbo.xp_create_subdir '{tempFolder}'";
+        await ExecuteAsync(server, createFolderCmd);
+        return tempFolder;
+    }
+
+    public static async Task<string> MakePathAccessible(string path, SqlServer server)
+    {
+        var tempFolder = await CreateAccessibleFolder(server);
+        var fileName = Path.GetFileName(path);
+        var accessiblePath = Path.Combine(tempFolder, fileName);
+        File.Copy(path, accessiblePath, true);
+        return accessiblePath;
     }
 }

@@ -27,7 +27,13 @@
             <TreeView Grid.Row="0" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
                 <TreeView.Resources>
                     <HierarchicalDataTemplate DataType="{x:Type local:SqlServer}" ItemsSource="{Binding Databases}">
-                        <TextBlock Text="{Binding ServerName}" />
+                        <TextBlock Text="{Binding ServerName}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Restore Backup" Command="{Binding RestoreBackupCommand}" />
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
                     </HierarchicalDataTemplate>
 
                     <HierarchicalDataTemplate DataType="{x:Type local:Database}" ItemsSource="{Binding Tables}">
