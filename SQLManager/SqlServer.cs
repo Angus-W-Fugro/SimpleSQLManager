@@ -73,8 +73,6 @@ public class SqlServer(string name, Func<DatabaseTable, string, Task> executeSQL
                 throw new InvalidOperationException("Backup corrupted");
             }
 
-            var logName = filesInBackup.First(f => f.EndsWith("_log"));
-
             var restoreCmd = @$"IF EXISTS (SELECT name FROM sys.databases WHERE (name = '{databaseName}'))
                                      BEGIN
                                         ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
