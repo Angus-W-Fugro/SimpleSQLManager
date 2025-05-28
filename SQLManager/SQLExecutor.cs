@@ -17,7 +17,7 @@ public class SQLExecutor
         return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
     }
 
-    public static string CreateConnectionString(ICanQuery canQuery)
+    public static string CreateConnectionString(NavigationItem canQuery)
     {
         if (canQuery is SqlServer server)
         {
@@ -47,7 +47,7 @@ public class SQLExecutor
         return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
     }
 
-    public static Task ExecuteAsync(ICanQuery canQuery, string sql)
+    public static Task ExecuteAsync(NavigationItem canQuery, string sql)
     {
         var connectionString = CreateConnectionString(canQuery);
 
@@ -63,7 +63,7 @@ public class SQLExecutor
         await command.ExecuteNonQueryAsync();
     }
 
-    public static async Task<string[]> QueryList(ICanQuery canQuery, string query)
+    public static async Task<string[]> QueryList(NavigationItem canQuery, string query)
     {
         var connectionString = CreateConnectionString(canQuery);
 
@@ -79,7 +79,7 @@ public class SQLExecutor
         return result.ToArray();
     }
 
-    public static async Task<DataTable> QueryTable(ICanQuery canQuery, string query)
+    public static async Task<DataTable> QueryTable(NavigationItem canQuery, string query)
     {
         var connectionString = CreateConnectionString(canQuery);
         return await QueryTable(connectionString, query);

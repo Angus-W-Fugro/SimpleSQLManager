@@ -26,44 +26,28 @@
 
             <TreeView Grid.Row="0" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
                 <TreeView.Resources>
-                    <HierarchicalDataTemplate DataType="{x:Type local:SqlServer}" ItemsSource="{Binding Databases}">
-                        <TextBlock Text="{Binding ServerName}">
+                    <HierarchicalDataTemplate DataType="{x:Type local:NavigationItem}" ItemsSource="{Binding Nodes}">
+                        <TextBlock Text="{Binding Name}">
                             <TextBlock.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Restore Backup" Command="{Binding RestoreBackupCommand}" />
-                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
+                                <ContextMenu ItemsSource="{Binding Actions}">
+                                    <ContextMenu.ItemTemplate>
+                                        <DataTemplate>
+                                            <MenuItem Header="{Binding Header}" Command="{Binding Command}" />
+                                        </DataTemplate>
+                                    </ContextMenu.ItemTemplate>
+
+                                    <ContextMenu.Style>
+                                        <Style TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+                                            <Style.Triggers>
+                                                <Trigger Property="HasItems" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContextMenu.Style>
                                 </ContextMenu>
                             </TextBlock.ContextMenu>
                         </TextBlock>
-                    </HierarchicalDataTemplate>
-
-                    <HierarchicalDataTemplate DataType="{x:Type local:Database}" ItemsSource="{Binding Tables}">
-                        <TextBlock Text="{Binding DatabaseName}">
-                            <TextBlock.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="New Query" Command="{Binding NewQueryCommand}" />
-                                    <MenuItem Header="Create Backup" Command="{Binding CreateBackupCommand}" />
-                                    <MenuItem Header="Drop" Command="{Binding DropDatabaseCommand}" />
-                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
-                                </ContextMenu>
-                            </TextBlock.ContextMenu>
-                        </TextBlock>
-                    </HierarchicalDataTemplate>
-
-                    <HierarchicalDataTemplate DataType="{x:Type local:DatabaseTable}" ItemsSource="{Binding Columns}">
-                        <TextBlock Text="{Binding TableName}">
-                            <TextBlock.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Select Top 1000" Command="{Binding SelectTop1000Command}" />
-                                    <MenuItem Header="Edit Data" Command="{Binding EditDataCommand}" />
-                                    <MenuItem Header="Refresh" Command="{Binding ReloadCommand}" />
-                                </ContextMenu>
-                            </TextBlock.ContextMenu>
-                        </TextBlock>
-                    </HierarchicalDataTemplate>
-
-                    <HierarchicalDataTemplate DataType="{x:Type local:DatabaseColumn}">
-                        <TextBlock Text="{Binding ColumnName}" />
                     </HierarchicalDataTemplate>
                 </TreeView.Resources>
             </TreeView>

@@ -7,29 +7,28 @@ using System.Windows.Input;
 
 namespace SQLManager;
 
-public class Database(string name, SqlServer server) : Model, ICanQuery
+public class Database : NavigationItem
 {
     private ObservableCollection<DatabaseTable>? _Tables;
 
-    public string DatabaseName { get; } = name;
-
-    public SqlServer Server { get; } = server;
-
-    public ObservableCollection<DatabaseTable>? Tables
+    public Database(string name, SqlServer server) : base(name)
     {
-        get => _Tables;
-        set
-        {
-            _Tables = value;
-            NotifyPropertyChanged();
-        }
+        DatabaseName = name;
+        Server = server;
+
+        Actions.Add(new ActionItem("New Query", NewQueryCommand));
+        Actions.Add(new ActionItem("Create Backup", CreateBackupCommand));
+        Actions.Add(new ActionItem("Drop", DropDatabaseCommand));
+        Actions.Add(new ActionItem("Refresh", ReloadCommand));
     }
 
-    public ICommand ReloadCommand => new Command(async () => await Reload());
+    public string DatabaseName { get; }
 
-    public async Task Load()
+    public SqlServer Server { get; }
+
+    public override async Task Load()
     {
-        if (Tables is not null)
+        if (Nodes is not null)
         {
             return;
         }
@@ -38,15 +37,9 @@ public class Database(string name, SqlServer server) : Model, ICanQuery
         var query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
         var tableNames = await SQLExecutor.QueryList(this, query);
 
-        var tables = new ObservableCollection<DatabaseTable>(tableNames.Select(name => new DatabaseTable(name, this)));
+        var tables = new ObservableCollection<NavigationItem>(tableNames.Select(name => new DatabaseTable(name, this)));
 
-        Tables = tables;
-    }
-
-    public async Task Reload()
-    {
-        Tables = null;
-        await Load();
+        Nodes = tables;
     }
 
     public ICommand NewQueryCommand => new Command(OpenNewQuery);

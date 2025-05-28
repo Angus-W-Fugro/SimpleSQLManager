@@ -1,32 +1,31 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Reflection.PortableExecutable;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SQLManager;
 
-public class SqlServer(string name, QueryTabManager queryTabManager) : Model, ICanQuery
+public class SqlServer : NavigationItem
 {
-    private ObservableCollection<Database>? _Databases;
-
-    public string ServerName { get; } = name;
-
-    public QueryTabManager QueryTabManager { get; } = queryTabManager;
-
-    public ObservableCollection<Database>? Databases
+    public SqlServer(string name, QueryTabManager queryTabManager) : base(name)
     {
-        get => _Databases;
-        set
-        {
-            _Databases = value;
-            NotifyPropertyChanged();
-        }
+        ServerName = name;
+        QueryTabManager = queryTabManager;
+
+        Actions.Add(new ActionItem("Restore Backup", RestoreBackupCommand));
+        Actions.Add(new ActionItem("Refresh", ReloadCommand));
     }
 
-    public async Task Load()
+    public string ServerName { get; }
+
+    public QueryTabManager QueryTabManager { get; }
+
+    public override async Task Load()
     {
-        if (Databases is not null)
+        if (Nodes is not null)
         {
             return;
         }
@@ -37,15 +36,7 @@ public class SqlServer(string name, QueryTabManager queryTabManager) : Model, IC
 
         var databases = databaseNames.OrderBy(x => x).Select(name => new Database(name, this));
 
-        Databases = new ObservableCollection<Database>(databases);
-    }
-
-    public ICommand ReloadCommand => new Command(async () => await Reload());
-
-    public async Task Reload()
-    {
-        Databases = null;
-        await Load();
+        Nodes = new ObservableCollection<NavigationItem>(databases);
     }
 
     public ICommand RestoreBackupCommand => new Command(async () => await RestoreBackup());

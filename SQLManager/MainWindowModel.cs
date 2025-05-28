@@ -40,29 +40,12 @@ public class MainWindowModel : Model
 
     private void UpdateSelectedItemPath()
     {
-        var selectedItemNames = new List<string>();
+        NavigationItem?[] selectedItems = [SelectedServer, SelectedDatabase, SelectedTable, SelectedColumn];
 
-        if (SelectedServer is not null)
-        {
-            selectedItemNames.Add(SelectedServer.ServerName);
-        }
+        var names = selectedItems.Where(item => item is not null)
+                                 .Select(item => item!.Name);
 
-        if (SelectedDatabase is not null)
-        {
-            selectedItemNames.Add(SelectedDatabase.DatabaseName);
-        }
-
-        if (SelectedTable is not null)
-        {
-            selectedItemNames.Add(SelectedTable.TableName);
-        }
-
-        if (SelectedColumn is not null)
-        {
-            selectedItemNames.Add(SelectedColumn.ColumnName);
-        }
-
-        SelectedItemPath = string.Join(" > ", selectedItemNames);
+        SelectedItemPath = string.Join(" > ", names);
     }
 
     public ObservableCollection<SqlServer> Servers

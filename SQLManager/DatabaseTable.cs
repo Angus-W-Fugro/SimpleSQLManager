@@ -4,27 +4,25 @@ using System.Windows.Input;
 
 namespace SQLManager;
 
-public class DatabaseTable(string tableName, Database database) : Model, ICanQuery
+public class DatabaseTable : NavigationItem
 {
-    private ObservableCollection<DatabaseColumn>? _Columns;
-
-    public string TableName { get; } = tableName;
-
-    public Database Database { get; } = database;
-
-    public ObservableCollection<DatabaseColumn>? Columns
+    public DatabaseTable(string name, Database database) : base(name)
     {
-        get => _Columns;
-        set
-        {
-            _Columns = value;
-            NotifyPropertyChanged();
-        }
+        TableName = name;
+        Database = database;
+
+        Actions.Add(new ActionItem("Select Top 1000", SelectTop1000Command));
+        Actions.Add(new ActionItem("Edit Data", EditDataCommand));
+        Actions.Add(new ActionItem("Refresh", ReloadCommand));
     }
 
-    public async Task Load()
+    public string TableName { get; }
+
+    public Database Database { get; }
+
+    public override async Task Load()
     {
-        if (Columns is not null)
+        if (Nodes is not null)
         {
             return;
         }
@@ -32,17 +30,9 @@ public class DatabaseTable(string tableName, Database database) : Model, ICanQue
         var query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{TableName}'";
         var columnNames = await SQLExecutor.QueryList(this, query);
 
-        var columns = new ObservableCollection<DatabaseColumn>(columnNames.Select(name => new DatabaseColumn(name, this)));
+        var columns = new ObservableCollection<NavigationItem>(columnNames.Select(name => new DatabaseColumn(name, this)));
 
-        Columns = columns;
-    }
-
-    public ICommand ReloadCommand => new Command(async () => await Reload());
-
-    public async Task Reload()
-    {
-        Columns = null;
-        await Load();
+        Nodes = columns;
     }
 
     public ICommand SelectTop1000Command => new Command(async () => await SelectTop1000());
