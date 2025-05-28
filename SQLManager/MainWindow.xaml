@@ -25,7 +25,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Margin="0,0,0,8" Text="{Binding SelectedItemPath}" />
+            <TextBlock Grid.Row="0" Margin="0,0,0,12" Text="{Binding SelectedItemPath}" TextWrapping="Wrap" />
 
             <TreeView Grid.Row="1" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
                 <TreeView.Resources>
@@ -33,11 +33,12 @@
                         <TextBlock Text="{Binding Name}">
                             <TextBlock.ContextMenu>
                                 <ContextMenu ItemsSource="{Binding Actions}">
-                                    <ContextMenu.ItemTemplate>
-                                        <DataTemplate>
-                                            <MenuItem Header="{Binding Header}" Command="{Binding Command}" />
-                                        </DataTemplate>
-                                    </ContextMenu.ItemTemplate>
+                                    <ContextMenu.ItemContainerStyle>
+                                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                            <Setter Property="Header" Value="{Binding Header}"/>
+                                            <Setter Property="Command" Value="{Binding Command}"/>
+                                        </Style>
+                                    </ContextMenu.ItemContainerStyle>
 
                                     <ContextMenu.Style>
                                         <Style TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
