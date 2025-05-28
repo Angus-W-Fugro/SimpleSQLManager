@@ -72,54 +72,26 @@
 
         <Grid Grid.Column="2" Margin="12">
             <TabControl ItemsSource="{Binding QueryTabs}" SelectedItem="{Binding SelectedTab}">
-                <TabControl.ItemContainerStyle>
-                    <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
-                        <Setter Property="Header" Value="{Binding TabHeader}"/>
-                    </Style>
-                </TabControl.ItemContainerStyle>
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="{Binding TabHeader}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <Button Grid.Column="1" Content="x" Padding="1" Command="{Binding CloseTabCommand}" />
+                        </Grid>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <local:QueryTab />
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
             </TabControl>
-
-            <!--<Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <Grid Grid.Row="0" Margin="0,0,0,8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Text="{Binding SelectedItemPath}" Margin="0,0,8,0" />
-            </Grid>
-            
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Text="Query:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <TextBox Grid.Column="1" Text="{Binding SQLText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,8,0" PreviewKeyDown="SQLTextBox_PreviewKeyDown" />
-                <Button Grid.Column="2" Content="Execute" Command="{Binding ExecuteSqlCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            </Grid>
-
-            <DataGrid Grid.Row="2" AutoGenerateColumns="True" IsReadOnly="{Binding ReadOnly}" ItemsSource="{Binding SQLResponse}" />
-
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0" Content="Edit" Command="{Binding EditTableCommand}" Margin="0,0,8,0" />
-                <Button Grid.Column="1" Content="Save changes" Command="{Binding SaveTableCommand}" Margin="0,0,8,0" />
-            </Grid>-->
         </Grid>
     </Grid>
 </Window>

@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace SQLManager;
 
-public class QueryTabModel(string header, Database database) : Model
+public class QueryTabModel(string header, Database database, Action<QueryTabModel> closeTab) : Model
 {
     private string? _SQLText;
     private DataTable? _SQLResponse;
@@ -14,6 +14,8 @@ public class QueryTabModel(string header, Database database) : Model
     public string TabHeader { get; } = header;
 
     public Database Database { get; } = database;
+
+    public ICommand CloseTabCommand => new Command(() => closeTab(this));
 
     public string? SQLText
     {

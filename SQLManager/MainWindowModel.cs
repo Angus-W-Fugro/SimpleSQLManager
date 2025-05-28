@@ -1,5 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Data;
 using System.Windows;
 using System.Windows.Input;
@@ -19,7 +18,7 @@ public class MainWindowModel : Model
     private string? _NewServerName;
     private bool _ReadOnly = true;
     private string? _SelectedItemPath;
-    private QueryTab? _SelectedTab;
+    private QueryTabModel? _SelectedTab;
     private QueryTabManager _QueryTabManager;
 
     public MainWindowModel()
@@ -172,20 +171,23 @@ public class MainWindowModel : Model
 
     public QueryTabModel CreateNewTab(string header, Database database)
     {
-        var queryTabModel = new QueryTabModel(header, database);
-
-        var queryTab = new QueryTab(queryTabModel);
+        var queryTab = new QueryTabModel(header, database, CloseTab);
 
         QueryTabs.Add(queryTab);
 
         SelectedTab = queryTab;
 
-        return queryTabModel;
+        return queryTab;
     }
 
-    public ObservableCollection<QueryTab> QueryTabs { get; } = [];
+    public void CloseTab(QueryTabModel queryTab)
+    {
+        QueryTabs.Remove(queryTab);
+    }
 
-    public QueryTab? SelectedTab
+    public ObservableCollection<QueryTabModel> QueryTabs { get; } = [];
+
+    public QueryTabModel? SelectedTab
     {
         get => _SelectedTab;
         set

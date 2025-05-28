@@ -7,22 +7,24 @@ namespace SQLManager;
 /// </summary>
 public partial class QueryTab
 {
-    public QueryTab(QueryTabModel model)
+    public QueryTab()
     {
-        Model = model;
-        DataContext = model;
+        DataContextChanged += QueryTab_DataContextChanged;
         InitializeComponent();
     }
 
-    public string TabHeader => Model.TabHeader;
+    private void QueryTab_DataContextChanged(object sender, System.Windows.DependencyPropertyChangedEventArgs e)
+    {
+        Model = e.NewValue as QueryTabModel;
+    }
 
-    public QueryTabModel Model { get; }
+    public QueryTabModel? Model { get; private set; }
 
     private void SQLTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
-            _ = Model.ExecuteSQL();
+            _ = Model?.ExecuteSQL();
         }
     }
 }
