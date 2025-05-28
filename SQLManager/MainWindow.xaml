@@ -82,7 +82,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="{Binding TabHeader}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <Button Grid.Column="1" Content="x" Padding="1" Command="{Binding CloseTabCommand}" />
+                            <Button Grid.Column="1" Content="X" Padding="3,1" Command="{Binding CloseTabCommand}" />
                         </Grid>
                     </DataTemplate>
                 </TabControl.ItemTemplate>
