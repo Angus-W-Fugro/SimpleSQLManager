@@ -15,16 +15,19 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="5" />
-            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="2*" />
         </Grid.ColumnDefinitions>
 
         <Grid Grid.Column="0" Margin="12">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TreeView Grid.Row="0" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
+            <TextBlock Grid.Row="0" Margin="0,0,0,8" Text="{Binding SelectedItemPath}" />
+
+            <TreeView Grid.Row="1" Margin="0,0,0,24" ItemsSource="{Binding Servers}" SelectedItemChanged="TreeView_SelectedItemChanged">
                 <TreeView.Resources>
                     <HierarchicalDataTemplate DataType="{x:Type local:NavigationItem}" ItemsSource="{Binding Nodes}">
                         <TextBlock Text="{Binding Name}">
@@ -52,7 +55,7 @@
                 </TreeView.Resources>
             </TreeView>
 
-            <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid Grid.Row="2" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
