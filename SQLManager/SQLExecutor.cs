@@ -76,7 +76,7 @@ public class SQLExecutor
 
     public static async Task<string[]> QueryList(NavigationItem navigationItem, string query)
     {
-        var connection = CreateConnection(navigationItem);
+        using var connection = CreateConnection(navigationItem);
         await connection.OpenAsync();
         var result = await connection.QueryAsync<string>(query);
         return result.ToArray();
@@ -86,27 +86,18 @@ public class SQLExecutor
     {
         using var connection = CreateConnection(navigationItem);
         await connection.OpenAsync();
+        using var reader = await connection.ExecuteReaderAsync(query);
 
         var dataTable = new DataTable();
 
         await Task.Run(() =>
         {
-            using var connection = new SqlConnection(connection);
-            using var command = new SqlCommand(query, connection);
-            using var adapter = new SqlDataAdapter(command);
-            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
-
-            adapter.Fill(dataTable);
+            dataTable.BeginLoadData();
+            dataTable.Load(reader);
+            dataTable.EndLoadData();
         });
 
         return dataTable;
-
-        return await QueryTable(connection, query);
-    }
-
-    public static async Task<DataTable> QueryTable(string connectionString, string query)
-    {
-        
     }
 
     /// <summary>
