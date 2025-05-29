@@ -7,8 +7,8 @@ namespace SQLManager;
 
 public class MainWindowModel : Model
 {
-    private ObservableCollection<SqlServer> _Servers;
-    private SqlServer? _SelectedServer;
+    private ObservableCollection<NavigationItem> _Servers;
+    private NavigationItem? _SelectedServer;
     private Database? _SelectedDatabase;
     private DatabaseTable? _SelectedTable;
     private DatabaseColumn? _SelectedColumn;
@@ -24,7 +24,7 @@ public class MainWindowModel : Model
     public MainWindowModel()
     {
         _QueryTabManager = new QueryTabManager(CreateNewTab);
-        _Servers = [new SqlServer("localhost\\sqlexpress", _QueryTabManager)];
+        _Servers = [ new SqlServer("localhost\\sqlexpress", _QueryTabManager) ];
     }
 
     public string? SelectedItemPath
@@ -47,7 +47,7 @@ public class MainWindowModel : Model
         SelectedItemPath = string.Join(" > ", names);
     }
 
-    public ObservableCollection<SqlServer> Servers
+    public ObservableCollection<NavigationItem> Servers
     {
         get => _Servers;
         set
@@ -57,7 +57,7 @@ public class MainWindowModel : Model
         }
     }
 
-    public SqlServer? SelectedServer
+    public NavigationItem? SelectedServer
     {
         get => _SelectedServer;
         set
@@ -129,7 +129,7 @@ public class MainWindowModel : Model
         var newServer = new SqlServer(NewServerName, _QueryTabManager);
         currentServers.Add(newServer);
 
-        Servers = new ObservableCollection<SqlServer>(currentServers);
+        Servers = new ObservableCollection<NavigationItem>(currentServers);
     }
 
     public async Task LoadSelected(object selectedItem)
@@ -140,6 +140,13 @@ public class MainWindowModel : Model
             {
                 await server.Load();
                 SelectedServer = server;
+                return;
+            }
+
+            if (selectedItem is SQLiteDatabase fileServer)
+            {
+                await fileServer.Load();
+                SelectedServer = fileServer;
                 return;
             }
 
@@ -195,5 +202,23 @@ public class MainWindowModel : Model
             _SelectedTab = value;
             NotifyPropertyChanged();
         }
+    }
+
+    public ICommand AddFileCommand => new Command(AddFile);
+
+    private void AddFile()
+    {
+        var filePath = DialogHelper.ChooseFile("Select file", "DB files (*.db)|*.db;");
+
+        if (filePath is null)
+        {
+            return;
+        }
+
+        var sqliteDatabase = new SQLiteDatabase(filePath, _QueryTabManager);
+
+        Servers.Add(sqliteDatabase);
+
+        SelectedServer = sqliteDatabase;
     }
 }

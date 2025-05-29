@@ -1,6 +1,8 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using System.Data;
+using System.Data.Common;
 using System.IO;
 
 namespace SQLManager;
@@ -17,21 +19,34 @@ public class SQLExecutor
         return CreateConnectionString(database.Server.ServerName, database.DatabaseName);
     }
 
-    public static string CreateConnectionString(NavigationItem canQuery)
+    public static DbConnection CreateConnection(NavigationItem navigationItem)
     {
-        if (canQuery is SqlServer server)
+        if (navigationItem is SqlServer server)
         {
-            return CreateConnectionString(server);
+            var connString = CreateConnectionString(server);
+            var connection = new SqlConnection(connString);
+            return connection;
         }
 
-        if (canQuery is Database database)
+        if (navigationItem is Database database)
         {
-            return CreateConnectionString(database);
+            var connString = CreateConnectionString(database);
+            var connection = new SqlConnection(connString);
+            return connection;
         }
 
-        if (canQuery is DatabaseTable table)
+        if (navigationItem is DatabaseTable table)
         {
-            return CreateConnectionString(table.Database.Server.ServerName, table.Database.DatabaseName);
+            var connString = CreateConnectionString(table.Database.Server.ServerName, table.Database.DatabaseName);
+            var connection = new SqlConnection(connString);
+            return connection;
+        }
+
+        if (navigationItem is SQLiteDatabase sqliteDatabase)
+        {
+            var connString = CreateConnectionStringFromPath(sqliteDatabase.FilePath);
+            var connection = new SqliteConnection(connString);
+            return connection;
         }
 
         throw new ArgumentException("Unsupported type for ICanQuery");
@@ -47,51 +62,36 @@ public class SQLExecutor
         return $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=True;Trusted_Connection=True;TrustServerCertificate=True;";
     }
 
-    public static Task ExecuteAsync(NavigationItem canQuery, string sql)
+    private static string CreateConnectionStringFromPath(string filePath)
     {
-        var connectionString = CreateConnectionString(canQuery);
-
-        return ExecuteAsync(connectionString, sql);
+        return $"Data Source={filePath};";
     }
 
-    public static async Task ExecuteAsync(string connectionString, string sql)
+    public static async Task ExecuteAsync(NavigationItem navigationItem, string query)
     {
-        using var connection = new SqlConnection(connectionString);
+        using var connection = CreateConnection(navigationItem);
         await connection.OpenAsync();
-
-        using var command = new SqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync();
+        await connection.ExecuteAsync(query);
     }
 
-    public static async Task<string[]> QueryList(NavigationItem canQuery, string query)
+    public static async Task<string[]> QueryList(NavigationItem navigationItem, string query)
     {
-        var connectionString = CreateConnectionString(canQuery);
-
-        return await QueryList(connectionString, query);
-    }
-
-    public static async Task<string[]> QueryList(string connectionString, string query)
-    {
-        using var connection = new SqlConnection(connectionString);
+        var connection = CreateConnection(navigationItem);
         await connection.OpenAsync();
-
         var result = await connection.QueryAsync<string>(query);
         return result.ToArray();
     }
 
-    public static async Task<DataTable> QueryTable(NavigationItem canQuery, string query)
+    public static async Task<DataTable> QueryTable(NavigationItem navigationItem, string query)
     {
-        var connectionString = CreateConnectionString(canQuery);
-        return await QueryTable(connectionString, query);
-    }
+        using var connection = CreateConnection(navigationItem);
+        await connection.OpenAsync();
 
-    public static async Task<DataTable> QueryTable(string connectionString, string query)
-    {
         var dataTable = new DataTable();
 
         await Task.Run(() =>
         {
-            using var connection = new SqlConnection(connectionString);
+            using var connection = new SqlConnection(connection);
             using var command = new SqlCommand(query, connection);
             using var adapter = new SqlDataAdapter(command);
             adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
@@ -100,6 +100,13 @@ public class SQLExecutor
         });
 
         return dataTable;
+
+        return await QueryTable(connection, query);
+    }
+
+    public static async Task<DataTable> QueryTable(string connectionString, string query)
+    {
+        
     }
 
     /// <summary>

@@ -89,18 +89,7 @@ public class SqlServer : NavigationItem
 
     private string? GetBackupFilePath()
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Select backup file",
-            Filter = "Database backups (*.zip, *.bak)|*.zip;*.bak",
-        };
-
-        if (!dialog.ShowDialog().GetValueOrDefault())
-        {
-            return null;
-        }
-
-        return dialog.FileName;
+        return DialogHelper.ChooseFile("Select backup file", "Database backups (*.bak)|*.bak;");
     }
 
     public override string ToString()

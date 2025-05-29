@@ -23,6 +23,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Margin="0,0,0,12" Text="{Binding SelectedItemPath}" TextWrapping="Wrap" />
@@ -66,6 +67,15 @@
                 <TextBlock Grid.Column="0" Text="Server Name:" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <TextBox Grid.Column="1" Text="{Binding NewServerName}" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <Button Grid.Column="2" Content="Add" Command="{Binding AddServerCommand}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            </Grid>
+
+            <Grid Grid.Row="3" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="Add file..." Command="{Binding AddFileCommand}" Margin="0,0,8,0" />
             </Grid>
         </Grid>
 
