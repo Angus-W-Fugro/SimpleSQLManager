@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 /// <summary>
 /// Interaction logic for QueryTab.xaml

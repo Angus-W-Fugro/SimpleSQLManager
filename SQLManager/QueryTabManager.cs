@@ -1,4 +1,4 @@
-﻿namespace SQLManager;
+﻿namespace SimpleSQLManager;
 
 public class QueryTabManager(Func<string, Database, QueryTabModel> createNewTab)
 {

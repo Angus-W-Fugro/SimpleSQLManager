@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public abstract class NavigationItem(string name) : Model
 {

@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using System.IO;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class SQLExecutor
 {

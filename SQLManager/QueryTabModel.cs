@@ -3,7 +3,7 @@ using System.Windows;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class QueryTabModel(string header, Database database, Action<QueryTabModel> closeTab) : Model
 {

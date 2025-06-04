@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class Command : ICommand
 {

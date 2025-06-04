@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class DatabaseTable : NavigationItem
 {

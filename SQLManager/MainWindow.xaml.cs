@@ -2,7 +2,7 @@
 using System.Windows.Documents;
 using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml

@@ -3,7 +3,7 @@ using System.Data;
 using System.Windows;
 using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class MainWindowModel : Model
 {

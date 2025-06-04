@@ -1,5 +1,5 @@
 ﻿
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class DatabaseColumn(string name, DatabaseTable table) : NavigationItem(name)
 {

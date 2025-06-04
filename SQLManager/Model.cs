@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class Model : INotifyPropertyChanged
 {

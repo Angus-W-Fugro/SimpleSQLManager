@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Data;
 
-namespace SQLManager
+namespace SimpleSQLManager
 {
     public class ShowIfFalseConverter : IValueConverter
     {

@@ -1,4 +1,4 @@
-﻿namespace SQLManager;
+﻿namespace SimpleSQLManager;
 
 /// <summary>
 /// Interaction logic for App.xaml

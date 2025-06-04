@@ -1,4 +1,4 @@
-namespace SQLManagerTests;
+namespace SimpleSQLManagerTests;
 
 public class ModelTests
 {

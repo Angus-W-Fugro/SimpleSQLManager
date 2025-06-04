@@ -14,7 +14,7 @@
     <UseWPF>true</UseWPF>
 	<DebugType>embedded</DebugType>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <StartupObject>SQLManager.App</StartupObject>
+    <StartupObject>SimpleSQLManager.App</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

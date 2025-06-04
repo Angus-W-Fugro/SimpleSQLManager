@@ -5,7 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 
-namespace SQLManager;
+namespace SimpleSQLManager;
 
 public class Database : NavigationItem
 {
