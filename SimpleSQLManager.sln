@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleSQLManager", "SQLManager\SimpleSQLManager.csproj", "{F9B7FE3E-2576-4A25-AAA3-3816A38C624B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleSQLManager", "SimpleSQLManager\SimpleSQLManager.csproj", "{F9B7FE3E-2576-4A25-AAA3-3816A38C624B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SQLManagerTests", "SQLManagerTests\SQLManagerTests.csproj", "{36FD2E9F-16D1-4EED-A368-34BB949A36F7}"
 EndProject
