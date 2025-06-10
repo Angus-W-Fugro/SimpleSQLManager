@@ -11,7 +11,8 @@
         xmlns:ui="http://schemas.modernwpf.com/2019"
         ui:WindowHelper.UseModernWindowStyle="True"
         d:DataContext="{d:DesignInstance Type=local:MainWindowModel}">
-    <Grid HorizontalAlignment="Stretch">
+    <Grid HorizontalAlignment="Stretch" AllowDrop="True"
+          Drop="Grid_Drop">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="5" />

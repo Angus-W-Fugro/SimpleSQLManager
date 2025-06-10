@@ -1,5 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using SimpleSQLManager.Properties;
+using System.Collections.ObjectModel;
 using System.Data;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 
@@ -24,7 +26,25 @@ public class MainWindowModel : Model
     public MainWindowModel()
     {
         _QueryTabManager = new QueryTabManager(CreateNewTab);
-        _Servers = [new SqlServer("localhost\\sqlexpress", _QueryTabManager)];
+        _Servers = [];
+
+        if (Settings.Default.Servers is null)
+        {
+            Settings.Default.Servers =
+            [
+                @"localhost\sqlexpress", // Default server
+            ];
+
+            Settings.Default.Save();
+        }
+
+        foreach (var serverName in Settings.Default.Servers)
+        {
+            var sqlServer = new SqlServer(serverName!, _QueryTabManager);
+            _Servers.Add(sqlServer);
+        }
+
+        SelectedServer = _Servers[0];
     }
 
     public string? SelectedItemPath
@@ -130,6 +150,9 @@ public class MainWindowModel : Model
         currentServers.Add(newServer);
 
         Servers = new ObservableCollection<SqlServer>(currentServers);
+
+        Settings.Default.Servers.Add(NewServerName);
+        Settings.Default.Save();
     }
 
     public async Task LoadSelected(object selectedItem)
@@ -195,5 +218,12 @@ public class MainWindowModel : Model
             _SelectedTab = value;
             NotifyPropertyChanged();
         }
+    }
+
+    public async Task HandleFiles(string[] files)
+    {
+        var backupFiles = files.Where(f => Path.GetExtension(f).Equals(".bak", StringComparison.OrdinalIgnoreCase));
+
+        throw new NotImplementedException();
     }
 }

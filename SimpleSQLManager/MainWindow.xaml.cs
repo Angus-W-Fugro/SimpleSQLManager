@@ -23,4 +23,16 @@ public partial class MainWindow
     {
         await _Model.LoadSelected(e.NewValue);
     }
+
+    private async void Grid_Drop(object sender, DragEventArgs e)
+    {
+        var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+
+        if (files is null)
+        {
+            return;
+        }
+
+        await _Model.HandleFiles(files);
+    }
 }
