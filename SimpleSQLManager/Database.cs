@@ -46,7 +46,7 @@ public class Database : NavigationItem
 
     private void OpenNewQuery()
     {
-        Server.QueryTabManager.CreateNewTab(this);
+        Server.ActionManager.CreateNewTab(this);
     }
 
     public ICommand CreateBackupCommand => new Command(async () => await CreateBackup());

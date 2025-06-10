@@ -39,7 +39,7 @@ public class DatabaseTable : NavigationItem
 
     private async Task SelectTop1000()
     {
-        var queryTab = Database.Server.QueryTabManager.CreateNewTab(Database);
+        var queryTab = Database.Server.ActionManager.CreateNewTab(Database);
 
         queryTab.SQLText = $"SELECT TOP (1000) * FROM [{TableName}]";
 
@@ -52,7 +52,7 @@ public class DatabaseTable : NavigationItem
     {
         var header = $"Edit {Database.DatabaseName}.{TableName}";
 
-        var queryTab = Database.Server.QueryTabManager.CreateNewTab(header, Database);
+        var queryTab = Database.Server.ActionManager.CreateNewTab(header, Database);
 
         queryTab.ReadOnly = false;
 

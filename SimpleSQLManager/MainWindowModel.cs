@@ -21,14 +21,14 @@ public class MainWindowModel : Model
     private bool _ReadOnly = true;
     private string? _SelectedItemPath;
     private QueryTabModel? _SelectedTab;
-    private QueryTabManager _QueryTabManager;
+    private ActionManager _ActionManager;
 
     public MainWindowModel()
     {
-        _QueryTabManager = new QueryTabManager(CreateNewTab);
+        _ActionManager = new ActionManager(CreateNewTab, Disconnect);
         _Servers = [];
 
-        if (Settings.Default.Servers is null)
+        if (Settings.Default.Servers is null || Settings.Default.Servers.Count == 0)
         {
             Settings.Default.Servers =
             [
@@ -40,11 +40,28 @@ public class MainWindowModel : Model
 
         foreach (var serverName in Settings.Default.Servers)
         {
-            var sqlServer = new SqlServer(serverName!, _QueryTabManager);
+            var sqlServer = new SqlServer(serverName!, _ActionManager);
             _Servers.Add(sqlServer);
         }
 
         SelectedServer = _Servers[0];
+    }
+
+    private void Disconnect(string serverName)
+    {
+        var server = _Servers.FirstOrDefault(s => s.ServerName == serverName);
+
+        if (server is null)
+        {
+            MessageBox.Show($"Server '{serverName}' not found.");
+            return;
+        }
+
+        Servers.Remove(server);
+        Settings.Default.Servers.Remove(serverName);
+        Settings.Default.Save();
+
+        SelectedServer = null;
     }
 
     public string? SelectedItemPath
@@ -146,7 +163,7 @@ public class MainWindowModel : Model
         }
 
         var currentServers = Servers.ToList();
-        var newServer = new SqlServer(NewServerName, _QueryTabManager);
+        var newServer = new SqlServer(NewServerName, _ActionManager);
         currentServers.Add(newServer);
 
         Servers = new ObservableCollection<SqlServer>(currentServers);
@@ -224,6 +241,19 @@ public class MainWindowModel : Model
     {
         var backupFiles = files.Where(f => Path.GetExtension(f).Equals(".bak", StringComparison.OrdinalIgnoreCase));
 
-        throw new NotImplementedException();
+        var backupFile = backupFiles.FirstOrDefault();
+
+        if (backupFile is null)
+        {
+            return;
+        }
+
+        if (SelectedServer is null)
+        {
+            MessageBox.Show("Please select a server first.");
+            return;
+        }
+
+        await SelectedServer.RestoreBackup(backupFile);
     }
 }

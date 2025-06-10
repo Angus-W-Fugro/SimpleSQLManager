@@ -1,6 +1,6 @@
 ﻿namespace SimpleSQLManager;
 
-public class QueryTabManager(Func<string, Database, QueryTabModel> createNewTab)
+public class ActionManager(Func<string, Database, QueryTabModel> createNewTab, Action<string> disconnectServer)
 {
     public QueryTabModel CreateNewTab(Database database)
     {
@@ -9,4 +9,6 @@ public class QueryTabManager(Func<string, Database, QueryTabModel> createNewTab)
     }
 
     public QueryTabModel CreateNewTab(string header, Database database) => createNewTab(header, database);
+
+    public void DisconnectServer(string serverName) => disconnectServer(serverName);
 }

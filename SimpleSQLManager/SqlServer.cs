@@ -1,27 +1,26 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Data;
-using System.Reflection.PortableExecutable;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SimpleSQLManager;
 
 public class SqlServer : NavigationItem
 {
-    public SqlServer(string name, QueryTabManager queryTabManager) : base(name)
+    public SqlServer(string name, ActionManager queryTabManager) : base(name)
     {
         ServerName = name;
-        QueryTabManager = queryTabManager;
+        ActionManager = queryTabManager;
 
         Actions.Add(new ActionItem("Restore Backup", RestoreBackupCommand));
         Actions.Add(new ActionItem("Refresh", ReloadCommand));
+        Actions.Add(new ActionItem("Disconnect", DisconnectCommand));
     }
 
     public string ServerName { get; }
 
-    public QueryTabManager QueryTabManager { get; }
+    public ActionManager ActionManager { get; }
 
     public override async Task Load()
     {
@@ -50,6 +49,11 @@ public class SqlServer : NavigationItem
             return;
         }
 
+        await RestoreBackup(backupPath);
+    }
+
+    public async Task RestoreBackup(string backupPath)
+    {
         try
         {
             backupPath = await SQLExecutor.MakePathAccessible(backupPath, this);
@@ -107,4 +111,6 @@ public class SqlServer : NavigationItem
     {
         return ServerName;
     }
+
+    public ICommand DisconnectCommand => new Command(() => ActionManager.DisconnectServer(ServerName));
 }
